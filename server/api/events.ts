@@ -5,8 +5,6 @@ import { Request, Response } from 'express';
 
 import sql from '../db';
 
-
-
 router.get('/', async (req: Request, res: Response) => {
     try {
         const { data } = await supabase
@@ -19,8 +17,7 @@ router.get('/', async (req: Request, res: Response) => {
     }
 })
 
-
-router.get('/events/:id', async (req: Request, res: Response) => {
+router.get('/:id', async (req: Request, res: Response) => {
     const { id } = req.params;
     const { data, error } = await supabase
         .from('events')
@@ -28,7 +25,7 @@ router.get('/events/:id', async (req: Request, res: Response) => {
         .eq('id', id);
 });
 
-router.get('/events/:id/entrants', async (req: Request, res: Response) => {
+router.get('/:id/entrants', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const data = await sql`select p.tag, p.id from profiles p
@@ -41,7 +38,7 @@ router.get('/events/:id/entrants', async (req: Request, res: Response) => {
     }
 })
 
-router.post('/events/:id/signup/:id2', async (req: Request, res: Response) => {
+router.post('/:id/signup/:id2', async (req: Request, res: Response) => {
     try {
         const { id, id2 } = req.params;
         const data = await sql`insert into e_entrants (event_id, user_id)
@@ -52,13 +49,37 @@ router.post('/events/:id/signup/:id2', async (req: Request, res: Response) => {
     }
 })
 
-router.delete('/events/:id/signup/:id2', async (req: Request, res: Response) => {
+router.delete('/:id/signup/:id2', async (req: Request, res: Response) => {
     try {
         const { id, id2 } = req.params;
         const data = await sql`delete from e_entrants
             where user_id = ${id2}
             and event_id = ${id}`;
         res.sendStatus(200);
+    } catch (error) {
+        console.log(error);
+    }
+})
+
+router.post('/:id/changesignup/:val', async (req: Request, res: Response) => {
+    try {
+        const { id, val } = req.params;
+        const data = await sql`update events
+            set signups_open = ${Boolean(val)}
+            where event_id = ${id}`;
+        res.sendStatus(200);
+    } catch (error) {
+        console.log(error);        
+    }
+})
+
+router.get('/:id/tournaments', async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const data = await sql`
+            select * from tournaments
+            where event_id = ${id}`
+        res.json(data);
     } catch (error) {
         console.log(error);
     }

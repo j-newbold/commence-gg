@@ -9,11 +9,12 @@ export default function EventListing(props:any) {
     }
     
     return (
-        <div onClick={() => renderEvent(props.eventId)}>
-            <div>
+        <div className='border-b-2 p-3 hover:bg-gray-200'
+            onClick={() => renderEvent(props.eventId)}>
+            <div className="text-3xl border-b-1 pb-2">
                 {props.eventName}
             </div>
-            <div>
+            <div className="ml-auto">
                 {props.eventStart}
             </div>
         </div>

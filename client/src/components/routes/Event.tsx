@@ -2,6 +2,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Button from 'react-bootstrap/Button';
+import TournamentListing from "../TournamentListing";
 
 export default function Event(props: any) {
     const [event, setEvent] = useState<any>(null);
@@ -30,7 +31,15 @@ export default function Event(props: any) {
     }, [entrants])
 
     const getTournaments = async () => {
-
+        const response = await fetch(import.meta.env.VITE_API_URL+`events/${id}/tournaments`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'content-type': 'application/json'
+            }
+        });
+        const jsonData = await response.json();
+        setTournaments(jsonData);
     }
 
     const addTournament = async () => {
@@ -108,34 +117,71 @@ export default function Event(props: any) {
         }
     }
 
+    const toggleSignups = async () => {
+        try {
+            const val = !event.signups_open;
+            const response = await fetch(import.meta.env.VITE_API_URL+`events/${id}/changesignup/${val}`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'content-type': 'application/json'
+                }, body: JSON.stringify({
+                    id: event.event_id,
+                    val: val
+                })
+            });
+            setEvent((prev: any) => ({...prev, signups_open: val}));
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
     return (
-        <>
+        <div className="p-3">
             {event?
             <>
                 <div>{event.event_name}</div>
                 <div>{event.event_date}</div>
                 <div>{event.event_desc}</div>
+                <div>Entrants:
+                    {entrants?.map((e: any, i: number) => {
+                        return (
+                            <div key={i}>
+                                {e.tag}
+                            </div>
+                        );
+                    })}
+                </div>
+                <div>Tournaments:
+                    {tournaments?.map((e: any, i: number) => {
+                        return (
+                            <TournamentListing event={event} tournament={e} key={i} />
+                        );
+                    })}
+                </div>
+                
+                {event.signups_open?
+                    <>{isRegistered?
+                        <Button onClick={handleReg} className="btn btn-danger">Remove Signup</Button>
+                        :
+                        <Button onClick={handleReg}>Sign up</Button>
+                    }</>
+                    :
+                    <></>
+                }
+                {event && session && event.event_creator == session.user.id ?
+                    <>
+                        <Button onClick={addTournament}>Add Tournament</Button>
+                        <Button onClick={toggleSignups}>
+                            {event.signups_open? <>Close Signups</> : <>Open Signups</>}
+                        </Button>
+                    </>
+                    :
+                    <></>
+                }
             </>
             :
             <div>Loading...</div>}
-            {entrants?.map((e: any, i: number) => {
-                return (
-                    <div key={i}>
-                        {e.tag}
-                    </div>
-                );
-            })}
-            
-            {isRegistered?
-                <Button onClick={handleReg} className="btn btn-danger">Remove Signup</Button>
-                :
-                <Button onClick={handleReg}>Sign up</Button>
-            }
-            {event && session && event.event_creator == session.user.id ?
-                <Button onClick={addTournament}>Add Tournament</Button>
-                :
-                <></>
-            }
-        </>
+        </div>
     );
 }

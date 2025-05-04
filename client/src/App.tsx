@@ -81,21 +81,21 @@ function App() {
 
     return (
         <>
-            <Navbar className="bsnavbar">
-                <Container>
-                    <Nav>
-                        <Nav.Link as={Link} to='/'>Home</Nav.Link>
+            <Navbar>
+                    <Nav className='top-nav'>
+                        <Nav.Link className='top-nav-link left-link' as={Link} to='/'><div className=''>Home</div></Nav.Link>
                         {session?
                             <>
-                                <Nav.Link as={Link} to='/createEvent'>Create Event</Nav.Link>
-                                <Nav.Link onClick={handleLogout}>Log out</Nav.Link> 
+                                <Nav.Link className='top-nav-link right-link' as={Link} to='/createEvent'>Create Event</Nav.Link>
+                                <Nav.Link className='top-nav-link right-link' onClick={handleLogout}>Log out</Nav.Link> 
                             </>:
-                            <Nav.Link as={Link} to='/login'>Log in</Nav.Link>
+                            <Nav.Link as={Link} className='top-nav-link right-link' to='/login'>Log in</Nav.Link>
                         }
                     </Nav>
-                </Container>
             </Navbar>
-            <Outlet />
+            <div className='main-container'>
+                <Outlet />
+            </div>
             <div>app says {session? <>logged in</> : <>logged out</>}</div>
 {/*             <Button onClick={onSubmitForm}>Debug</Button>
             <input type="number" value={numPlayers}

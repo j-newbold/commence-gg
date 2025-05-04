@@ -3,6 +3,41 @@
 @tailwind utilities;
 
 @layer components {
+    .top-nav {
+        @apply w-full flex content-start;
+    }
+
+    .top-nav-link {
+        @apply hover:rounded-lg hover:bg-gray-500 hover:text-gray-200 text-black
+            align-middle justify-items-center;
+    }
+
+    .left-link {
+        @apply content-start ml-0 mr-auto;
+    }
+
+    .right-link {
+        @apply mr-0 ml-0;
+    }
+
+    .left-nav {
+        @apply flex flex-col items-start justify-around
+            h-full ml-5;
+    }
+
+    .left-nav-link {
+        @apply hover:bg-gray-500 p-2 w-full hover:text-gray-200 flex
+            ;
+    }
+
+    .main-panel {
+        @apply w-3/4 border border-gray-200 rounded-md shadow-md
+            h-screen;
+    }
+
+    .main-container {
+        @apply flex flex-row;
+    }
     
 }
 
@@ -13,6 +48,8 @@
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
+
+  padding: 0px;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -77,11 +114,20 @@ a:hover {
   color: #535bf2;
 }
 
+html {
+    margin-left: auto;
+    margin-right: auto;
+}
+
 body {
-  margin: 0;
-  display: flex;
-  min-width: 320px;
-  min-height: 100vh;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-right: 20px;
+    padding-left: 20px;
+    min-width: 320px;
+    max-width: 800px;
+    min-height: 100vh;
 }
 
 .tourney-holder {

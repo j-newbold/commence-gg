@@ -4,12 +4,10 @@ import Nav from 'react-bootstrap/Nav';
 
 export default function LeftNav() {
     return (
-        <Navbar>
-            <Container>
-                <Nav.Link>Profile</Nav.Link>
-                <Nav.Link>My Events</Nav.Link>
-                <Nav.Link>My Matches</Nav.Link>
-            </Container>
-        </Navbar>
+                <div className="left-nav">
+                    <Nav.Link className="left-nav-link">Profile</Nav.Link>
+                    <Nav.Link className="left-nav-link">My Events</Nav.Link>
+                    <Nav.Link className="left-nav-link">My Matches</Nav.Link>
+                </div>
     );
 }

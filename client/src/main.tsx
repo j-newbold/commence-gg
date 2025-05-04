@@ -9,6 +9,7 @@ import { AuthProvider } from './context/AuthContext.tsx';
 import EList from './components/routes/EList.tsx';
 import Event from './components/routes/Event.tsx';
 import CreateEvent from './components/routes/CreateEvent.tsx';
+import Tournament from './components/routes/Tournament.tsx';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -19,9 +20,9 @@ createRoot(document.getElementById('root')!).render(
                     <Route path='login' element={<Login/>} />
                     <Route path='' element={<Home />}>
                         <Route index element={<EList />} />
-                        <Route path='event/:id' element={<Event />}>
-                            {/* <Route path='tournament/:id' element={<Tournament />} /> */}
+                        <Route path='event/:id/' element={<Event />}>
                         </Route>
+                        <Route path='event/:id/tournament/:tid' element={<Tournament />} />
                     </Route>
                     <Route path='createEvent' element={<CreateEvent />} />
                 </Route>

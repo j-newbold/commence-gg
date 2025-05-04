@@ -11,7 +11,9 @@ export default function Home() {
             {session?
                 <LeftNav /> :
                 <></>}
-            <Outlet />
+            <div className="main-panel">
+                <Outlet />
+            </div>
         </>
     );
 }
