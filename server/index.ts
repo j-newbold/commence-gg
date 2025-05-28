@@ -25,6 +25,8 @@ const eventRouter = require('./api/events.ts');
 app.use('/events', eventRouter);
 const { router: tournamentRouter, handleTournamentSockets } = require('./api/tournaments.ts');
 app.use('/tournaments', tournamentRouter);
+const matchRouter = require('./api/matches.ts');
+app.use('/matches', matchRouter);
 
 app.get('/', (req: Request, res: Response) => {
     const response = { msg: "response from server: ok!"};
@@ -41,14 +43,25 @@ app.get('/tournaments', async (req: Request, res: Response) => {
 const server = createServer(app);
 const io = new Server(server, {
     cors: {
-      origin: process.env.ORIGIN, // React app's URL
+      origin: process.env.ORIGIN,
       methods: ['GET', 'POST'],
     },
   });
-io.on('connection', (socket) => {
-    console.log('a user connected');
+io.on('connection', async (socket) => {
+        
+    socket.on('signup added', async (userInfo) => {
+        io.emit('signup added', userInfo);
+    });
+    socket.on('signup removed', async (id) => {
+        console.log('signup removed');
+        io.emit('signup removed', id);
+    });
 
-    handleTournamentSockets(socket);
+    socket.on('matches updated', async (newMatchData) => {
+        io.emit('matches updated', newMatchData);
+    });
+
+    //handleTournamentSockets(socket);
     
 });
 

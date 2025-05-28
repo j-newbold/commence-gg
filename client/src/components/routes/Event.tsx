@@ -155,7 +155,7 @@ export default function Event(props: any) {
                 <div>Tournaments:
                     {tournaments?.map((e: any, i: number) => {
                         return (
-                            <TournamentListing event={event} tournament={e} key={i} />
+                            <TournamentListing event={event} tournament={e} key={i} canSignUp={isRegistered} />
                         );
                     })}
                 </div>

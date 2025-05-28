@@ -23,7 +23,7 @@ export default function Match(props: any) {
         }
     }, [props.p2SetWinsNeeded]) */
 
-    useEffect(() => {
+/*     useEffect(() => {
         if (didMountP1.current < 1) {
             didMountP1.current += 1;
         } else {
@@ -107,27 +107,27 @@ export default function Match(props: any) {
                 props.setWinner(null, null, props.bIndex, props.rIndex, props.mIndex);
             }
         }
-    }
+    } */
 
     return (
         <>
             <div style={props.style} className="match-holder">
                 <div>
-                    <span>{curMatch?.p1?.name || 'Player 1'}</span>
+                    <span>{curMatch?.p1?.tag || 'Player 1'}</span>
                     <input
                         type="checkbox"
                         checked={p1Win}
-                        onChange={handleP1Check}
+                        //onChange={handleP1Check}
                     />
                 </div>
                 <div>
-                    <span>{curMatch?.p2?.name || 'Player 2'}</span>
+                    <span>{curMatch?.p2?.tag || 'Player 2'}</span>
                     {Array.from({ length: props.p2SetWinsNeeded }).map((_, index) => {
                         return <input
                                     key={index}
                                     type="checkbox"
                                     checked={p2Win[index]}
-                                    onChange={(key) => {handleP2Check(index)}}
+                                    //onChange={(key) => {handleP2Check(index)}}
                                 />
                     })}
                 </div>

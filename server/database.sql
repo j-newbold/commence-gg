@@ -1,4 +1,4 @@
-create table public.events(
+create table public.events (
     event_id SERIAL PRIMARY KEY,
     event_name text,
     event_desc text,
@@ -9,7 +9,7 @@ create table public.events(
         REFERENCES auth.users(id)
 );
 
-create table public.tournament(
+create table public.tournaments (
     tournament_id SERIAL PRIMARY KEY,
     event_id int,
     CONSTRAINT fk_event_id
@@ -34,9 +34,9 @@ create table public.e_entrants (
         FOREIGN KEY (event_id)
         REFERENCES events(event_id) ON DELETE CASCADE,
 
-    id uuid REFERENCES auth.users,
+    user_id uuid REFERENCES auth.users,
     CONSTRAINT fk_entrant_id
-        FOREIGN KEY (event_id)
+        FOREIGN KEY (user_id)
         REFERENCES auth.users(id)
 );
 
@@ -47,8 +47,59 @@ create table public.t_entrants (
         FOREIGN KEY (tournament_id)
         REFERENCES events(tournament_id) ON DELETE CASCADE,
         
-    id uuid REFERENCES auth.users,
+    user_id uuid REFERENCES auth.users,
     CONSTRAINT fk_entrant_id
-        FOREIGN KEY (event_id)
+        FOREIGN KEY (user_id)
         REFERENCES auth.users(id)
+);
+
+create TYPE bracket_type as ENUM ('double_elim', 'single_elim', 'round_robin');
+
+create table public.b_entrants (
+    b_entrant_id SERIAL PRIMARY KEY,
+    bracket_id int,
+    CONSTRAINT fk_bracket_id
+        FOREIGN KEY (bracket_id)
+        REFERENCES brackets(bracket_id) ON DELETE CASCADE,
+
+    id uuid REFERENCES auth.users,
+    CONSTRAINT fk_b_entrant_id
+        FOREIGN KEY (id)
+        REFERENCES auth.users(id)
+);
+
+create table public.brackets (
+    bracket_id SERIAL PRIMARY KEY,
+    b_type bracket_type,
+    tournament_id int,
+    CONSTRAINT fk_tournament_id
+        FOREIGN KEY (tournament_id)
+        REFERENCES tournaments(tournament_id) ON DELETE CASCADE
+);
+
+create table public.matches (
+    match_id SERIAL PRIMARY KEY,
+
+    m_row int,
+    m_col int,
+
+    p1_id uuid REFERENCES auth.users,
+    CONSTRAINT fk_p1_id
+        FOREIGN KEY (p1_id)
+        REFERENCES auth.users(id),
+
+    p2_id uuid REFERENCES auth.users,
+    CONSTRAINT fk_p2_id
+        FOREIGN KEY (p2_id)
+        REFERENCES auth.users(id),
+    
+    winner_id uuid REFERENCES auth.users,
+    CONSTRAINT fk_winner_id
+        FOREIGN KEY (winner_id)
+        REFERENCES auth.users(id),
+
+    bracket_id int,
+    CONSTRAINT fk_bracket_id
+        FOREIGN KEY (bracket_id)
+        REFERENCES brackets(bracket_id) ON DELETE CASCADE
 );

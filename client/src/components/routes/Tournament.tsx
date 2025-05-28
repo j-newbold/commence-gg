@@ -1,38 +1,76 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams } from "react-router-dom";
-import { io } from 'socket.io-client';
+import { useParams, useLocation } from "react-router";
+import io from 'socket.io-client';
+import Button from 'react-bootstrap/Button';
+import { useAuth } from "../../context/AuthContext";
+import { Player, SingleBracket, ElimBracket, Round, MatchObj } from '../../utils/types';
+import { createPlayerOrder } from "../../utils/misc";
+
+import SEBracket from '../brackets/SEBracket';
+
+const socket = io(import.meta.env.VITE_API_URL);
 
 export default function Tournament(props: any) {
     const [tournament, setTournament] = useState<any>(null);
-    const [tourneyEntrants, setTourneyEntrants] = useState<any>(null);
-    const [tourneyBracket, getTourneyBracket] = useState<any>(null);
+    const [bracketNum, setBracketNum] = useState<any>(null);
+    const [tourneyData, setTourneyData] = useState<any>(null);
+    const [isSignedUp, setIsSignedUp] = useState<boolean>(false);
+    const [canSignUp, setCanSignUp] = useState<boolean>(false);
     const { id, tid } = useParams();
+    const { session } = useAuth();
+
+    const location = useLocation();
 
     const effectRan = useRef(false);
+    const tourneyDataRef = useRef(tourneyData);
 
     useEffect(() => {
         if (effectRan.current || !import.meta.env.VITE_API_URL.includes('localhost')) {
-            getTournament();    // eventually this will be removed
-            getTourneyEntrants();
-            const socket = io(import.meta.env.VITE_API_URL);
-    
+            getTournament();
+
             socket.on('connect', () => {
-                socket.emit('reqTournament', { tid: tid });
+                console.log('connected to server');
+            });
+            
+            socket.on('signup added', (userInfo) => {
+                setTourneyData((prev: any) => ({...prev, playerList: [...prev.playerList, userInfo]}));
+
             })
 
-            socket.on('sendTournament', (tourneyData) => {
-                setTournament(tourneyData.data);
+            socket.on('signup removed', (id) => {
+                setTourneyData((prev: any) => ({...prev, playerList: prev.playerList.filter((el: any) => el.id != id)}));
             })
+
+            socket.on('matches updated', (matches) => {
+                let newRoundList = tourneyDataRef.current.roundList;   // error is here somewhere
+                for (var ma of matches) {
+                    newRoundList[ma.matchCol][ma.matchRow] = ma;
+                }
+                setTourneyData((prev: any) => ({...prev, roundList: newRoundList}));
+            })
+
+            setCanSignUp(location.state.canSignUp);
             
             return () => {
-                socket.emit('disc', { tid: tid });
-                //socket.disconnect();
+                //socket.emit('disc', { tid: tid });
+                socket.disconnect();
             }
         }
 
-        return () => effectRan.current = true;
+        return () => {
+            effectRan.current = true;
+        }
 
     }, [])
+
+    useEffect(() => {
+        tourneyDataRef.current = tourneyData;
+        if (session && tourneyData?.playerList) {
+            setIsSignedUp(tourneyData.playerList.some((e:any) => {
+                return session.user.id === e.id
+            }));
+        }
+    }, [tourneyData])
 
     const getTournament = async () => {
         const response = await fetch(import.meta.env.VITE_API_URL+`tournaments/${tid}`, {
@@ -43,24 +81,157 @@ export default function Tournament(props: any) {
             }
         });
         const jsonData = await response.json();
-        console.log(jsonData);
-        //setTournament(jsonData);
+        
+        setBracketNum(0); // hardcoded because we currently assume 1 bracket
+
+        // currently coded as a SingleBracket but should be a FullTournament
+        setTourneyData((): SingleBracket => {
+            return {
+                playerList: jsonData.entrants.map((e: any, i: number): Player => {
+                    return {
+                        seed: i+1,
+                        tag: e.tag,
+                        isHuman: true,
+                        id: e.id
+                    }
+                }),
+                roundList: jsonData.brackets[0].roundList
+            }
+        });
     }
 
-    const getTourneyEntrants = async () => {
-        const response = await fetch(import.meta.env.VITE_API_URL+`tournaments/${tid}/entrants`, {
-            method: 'GET',
+    const handleReset = async () => {
+        let newMatches = tourneyData.roundList.map((e: any, i: number) => {
+            return e.map((f: any, j: number) => {
+                console.log(f);
+                return { ...f,  // the problem is in here somewhere
+                    p1: null,
+                    p2: null,
+                    winner: null,
+                    loser: null,
+                }
+            })
+        })
+        setTourneyData((prev: SingleBracket): SingleBracket => {
+            return {
+                playerList: prev.playerList,
+                roundList: newMatches
+            }
+        });
+
+        newMatches = newMatches.flat();
+
+        const response = await fetch(import.meta.env.VITE_API_URL+`matches/update`, {
+            method: 'POST',
             credentials: 'include',
             headers: {
                 'content-type': 'application/json'
-            }
+            }, body: JSON.stringify({
+                matches: newMatches
+            })
         });
-        const jsonData = await response.json();
-        setTourneyEntrants(jsonData);
+        const newMatchJson = await response.json();
+        if (response.status == 200) {
+            console.log('updating matches');
+            socket.emit('matches updated', newMatchJson);
+        }
     }
 
-    const getBracket = async () => {
+    const handleStart = async () => {
+        // assume bracket_type is single elim
+        if (tourneyData.playerList.length > tourneyData.roundList.length*2) {
+            console.log('too many players for this bracket');
+        } else {
+            let playerListWithByes = [...tourneyData.playerList];
+            while (Math.floor(Math.log2(playerListWithByes.length)) != Math.log2(playerListWithByes.length)) {
+                let newBye: Player = {
+                    seed: playerListWithByes.length,
+                    tag: 'Bye',
+                    isHuman: false
+                }
+                playerListWithByes.push(newBye);
+            }
+            let seedOrder = createPlayerOrder(playerListWithByes.length);
+            let newMatches = [...tourneyData.roundList[0]];
+            newMatches = newMatches.map((e: any, i: number): MatchObj => {
+                return {
+                    ...e,
+                    p1: playerListWithByes[seedOrder[i*2]-1],
+                    p2: playerListWithByes[seedOrder[i*2+1]-1],
+                    winner: null,
+                    loser: null
+                }
+            });
+            setTourneyData((prev: SingleBracket): SingleBracket => {
+                return {
+                    playerList: prev.playerList,
+                    roundList: [newMatches, ...prev.roundList.slice(1)]
+                }
+            });
 
+            const response = await fetch(import.meta.env.VITE_API_URL+`matches/update`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'content-type': 'application/json'
+                }, body: JSON.stringify({
+                    matches: newMatches
+                })
+            });
+            const newMatchJson = await response.json();
+            if (response.status == 200) {
+                console.log('updating matches');
+                socket.emit('matches updated', newMatchJson);
+            }
+        }
+    }
+
+    const handleSignup = async () => {
+        try {
+            if (session) {
+                if (!canSignUp) {
+                    console.log('you must register for the event first!');
+                    // popup: you must register for the event first!
+                } else {
+                    if (!isSignedUp) {
+                        const response = await fetch(import.meta.env.VITE_API_URL+`tournaments/${tid}/signup/${session.user.id}`, {
+                            method: 'POST',
+                            credentials: 'include',
+                            headers: {
+                                'content-type': 'application/json'
+                            }, body: JSON.stringify({
+                                eventId: id,
+                                tournamentId: tid,
+                                userId: session.user.id
+                            })
+                        });
+                        const userJson = await response.json()
+                        if (response.status == 200) {
+                            socket.emit('signup added', userJson);
+                        }
+                    } else {
+                        const response = await fetch(import.meta.env.VITE_API_URL+`tournaments/${tid}/signup/${session.user.id}`, {
+                            method: 'DELETE',
+                            credentials: 'include',
+                            headers: {
+                                'content-type': 'application/json'
+                            }, body: JSON.stringify({
+                                eventId: id,
+                                tournamentId: tid,
+                                userId: session.user.id
+                            })
+                        });
+                        if (response.status == 200) {
+                            socket.emit('signup removed', session.user.id);
+                        }
+                    }
+                }
+            } else {
+                // popup: you must log in!
+            }
+        } catch (error) {
+            console.log(error);
+        }
     }
 
     return (
@@ -68,19 +239,27 @@ export default function Tournament(props: any) {
             <div className="text-3xl">
                 {/* {tournament?.tournament_name} */}
             </div>
-            {tourneyEntrants? 
+            {tourneyData?.playerList? 
                 <div>Entrants:
-                    {tourneyEntrants.map((e: any, i: number) => {
+                    {tourneyData.playerList.map((e: any, i: number) => {
                         return (
                             <div key={i}>{e.tag}</div>
                         );
                     })}
                 </div>
             : <></>}
-            {tournament?.bracketList.length > 1?
-                <div>Dropdown goes here</div>
+            {canSignUp?
+                <>{!isSignedUp? <Button onClick={handleSignup} >Sign Up</Button> : <Button onClick={handleSignup} >Remove Signup</Button>}</>
                 :
-                <div>Length = 1</div>
+                <>Register for the event to sign up for this tournament!</>
+            }
+            <div>
+                <Button onClick={handleStart}>Start Tournament</Button><Button onClick={handleReset}>Reset</Button>
+            </div>
+            {tourneyData?
+                <SEBracket bracketData={tourneyData} />
+                :
+                <></>
             }
         </div>
     );

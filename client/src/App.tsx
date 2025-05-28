@@ -18,6 +18,7 @@ import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { supabase } from './utils/supabaseClient.tsx';
 import { useAuth } from './context/AuthContext.tsx';
 
+
 function randStr() {
     return (Math.random() + 1).toString(36).substring(7);
 }
@@ -37,6 +38,9 @@ function App() {
         const { error } = await supabase.auth.signOut();
         await navigate('/');
     }
+
+    useEffect(() => {
+    }, []);
 
     const onSubmitForm = async (e: any) => {
         e.preventDefault();
