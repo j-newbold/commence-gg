@@ -25,7 +25,7 @@ router.get('/:id', async (req: Request, res: Response) => {
                 p1.tag p1_tag,
                 p2.id p2_id,
                 p2.tag p2_tag,
-            m.match_id, m.bracket_id,
+            m.match_id, m.bracket_id, m.wins_needed, m.wins_p1, m.wins_p2, m.is_bye,
                 m.winner_id
             FROM matches m
             LEFT JOIN brackets b
@@ -74,7 +74,11 @@ router.get('/:id', async (req: Request, res: Response) => {
                     } : null),
                     matchId: matchInfo[j].match_id,
                     winner: matchInfo[j].winner_id,
-                    bracketId: matchInfo[j].bracket_id
+                    bracketId: matchInfo[j].bracket_id,
+                    winsNeeded: matchInfo[j].wins_needed,
+                    winsP1: matchInfo[j].wins_p1,
+                    winsP2: matchInfo[j].wins_p2,
+                    isBye: matchInfo[j].is_bye
                 });
 
                 j++;

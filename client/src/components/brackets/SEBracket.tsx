@@ -1,18 +1,24 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import '../../App.css';
+import '../../index.css';
 import Match from '../Match.tsx';
 import FinalsMatch from '../FinalsMatch.tsx';
 import Dropdown from 'react-bootstrap/Dropdown';
 import { sumBooleans } from '../../utils/misc.tsx';
 import { SingleBracket, MatchObj, Round, Player, RRPool, ElimBracket, FinalsMatchObj } from '../../utils/types.tsx';
 
-export default function SEBracket({bracketData}: {bracketData: SingleBracket}) {
+export default function SEBracket({bracketData, ...props}: {bracketData: SingleBracket;
+                                                            [key: string]: any;
+}) {
     const [bracketStruct, setBracketStruct] = useState<SingleBracket>(bracketData);
 
     useEffect(() => {
         setBracketStruct(bracketData);
     }, [bracketData])
+
+    function setResult() {
+
+    }
 
 /*     function setPlayerAndWinner (isP1: boolean, playerParam: Player, bInd: number, rInd: number, mInd: number): void{
         setBracketStruct((prevBracketStruct) => ({ bracketList: prevBracketStruct.bracketList.map((br, ind1) => {
@@ -129,8 +135,7 @@ export default function SEBracket({bracketData}: {bracketData: SingleBracket}) {
                         style={{
                             position: 'absolute',
                             left: String(240*rIndex)+'px',
-                            top: '50px',
-                            width: '200px'
+                            top: '50px'
                     }}>
                         Round {rIndex+1}
                         {rd.map((ma: any, ind: number) => (
@@ -139,8 +144,7 @@ export default function SEBracket({bracketData}: {bracketData: SingleBracket}) {
                                 style={{
                                     position: 'absolute',
                                     top: String(125*ind+50)+'px',
-                                    left: '0px',
-                                    width: '200px'
+                                    left: '0px'
                                 }}
                                 /* p1Input={ma.p1Input? ma.p1Input[3] ? bracketStruct.roundList[ma.p1Input[1]].matchList[ma.p1Input[2]].winner 
                                     : bracketStruct.roundList[ma.p1Input[1]].matchList[ma.p1Input[2]].loser 
@@ -155,6 +159,7 @@ export default function SEBracket({bracketData}: {bracketData: SingleBracket}) {
                                 //setPlayer={setPlayer}
                                 //setPlayerAndWinner={setPlayerAndWinner}
                                 p2SetWinsNeeded={1}
+                                setMatchResults={props.setMatchResults}
                             />
                         ))}
                     </div>

@@ -1,19 +1,93 @@
 import { useContext, useEffect, useState, useRef } from "react";
 import { MatchObj } from '../utils/types';
+import { Modal, Button } from "react-bootstrap";
 
 export default function Match(props: any) {
     // p1Win is a boolean, p2Win is an array of booleans
     const [p1Win, setP1Win] = useState(false);
     const [p2Win, setP2Win] = useState(Array(props.p2SetWinsNeeded).fill(false));
     const [curMatch, setCurMatch] = useState(props.matchProp);
+    const [showModal, setShowModal] = useState(false);
+
+    const [tempWinsP1, setTempWinsP1] = useState(0);
+    const [tempWinsP2, setTempWinsP2] = useState(0);
 
     const didMountP1 = useRef(0);
     const didMountP2 = useRef(0);
     const didMountP2SetWins = useRef(0);
 
     useEffect(() => {
+        console.log(props.matchProp);
         setCurMatch(props.matchProp);
+        setTempWinsP1(props.matchProp.winsP1);
+        setTempWinsP2(props.matchProp.winsP2);
     }, [props.matchProp])
+
+    const handleModal = (bool: boolean) => {
+        setShowModal(bool);
+    }
+
+    const handleSubmitMatchChange = () => {
+        if (tempWinsP1 == tempWinsP2 && tempWinsP1 == curMatch.winsNeeded) {
+            // handle error
+        } else if (tempWinsP1 != Math.round(tempWinsP1) || tempWinsP2 != Math.round(tempWinsP2)) {
+            // handle error--integers only!
+        } else if (tempWinsP1 < 0 || tempWinsP2 < 0) {
+            // handle error--below-zero
+        } else if (tempWinsP1 == curMatch.winsP1 && tempWinsP2 == curMatch.winsP2) {
+            // no action needed
+        } else if (tempWinsP1 <= curMatch.winsNeeded && tempWinsP2 <= curMatch.winsNeeded) {
+            if (tempWinsP1 == curMatch.winsNeeded) {
+                // need to consolidate these lines
+                setCurMatch({
+                    ...curMatch,
+                    winsP1: tempWinsP1,
+                    winsP2: tempWinsP2,
+                    winner: curMatch.p1  // unsure if this creates a copy or a reference
+                });
+                props.setMatchResults(curMatch.matchRow,
+                    curMatch.matchCol,
+                    tempWinsP1,
+                    tempWinsP2,
+                    curMatch.p1,
+                    null,
+                    null
+                );
+            } else if (tempWinsP2 == curMatch.winsNeeded) {
+                setCurMatch({
+                    ...curMatch,
+                    winsP1: tempWinsP1,
+                    winsP2: tempWinsP2,
+                    winner: curMatch.p2  // unsure if this creates a copy or a reference
+                });
+                props.setMatchResults(curMatch.matchRow,
+                    curMatch.matchCol,
+                    tempWinsP1,
+                    tempWinsP2,
+                    curMatch.p2,
+                    null,
+                    null
+                );
+            } else {
+                setCurMatch({
+                    ...curMatch,
+                    winsP1: tempWinsP1,
+                    winsP2: tempWinsP2,
+                    winner: null  // unsure if this creates a copy or a reference
+                });
+                props.setMatchResults(curMatch.matchRow,
+                    curMatch.matchCol,
+                    tempWinsP1,
+                    tempWinsP2,
+                    null,
+                    null,
+                    null
+                );
+            }
+        } else {
+            // handle error--number too large
+        }
+    }
 
 /*     useEffect(() => {
         if (didMountP2SetWins.current < 1) {
@@ -109,29 +183,66 @@ export default function Match(props: any) {
         }
     } */
 
+    // probably not necessary
+    const parseGameWinInput = (num: number) => {
+        if (num > curMatch.winsNeeded) {
+            return curMatch.winsNeeded;
+        } else if (num < 0) {
+            return 0;
+        } else {
+            return Math.round(num);
+        }
+    }
+
     return (
         <>
-            <div style={props.style} className="match-holder">
-                <div>
-                    <span>{curMatch?.p1?.tag || 'Player 1'}</span>
-                    <input
-                        type="checkbox"
-                        checked={p1Win}
-                        //onChange={handleP1Check}
-                    />
+            <div style={props.style} className="match-holder" onClick={() => handleModal(true)} >
+                <div className="match-player-text match-player-holder-top">
+                    <div className="match-player-name">{curMatch?.p1?.tag || (curMatch.isBye? 'Bye' : 'Player 1')}</div>
+                    <div className="match-game-wins">{curMatch?.winsP1}</div>
                 </div>
-                <div>
-                    <span>{curMatch?.p2?.tag || 'Player 2'}</span>
-                    {Array.from({ length: props.p2SetWinsNeeded }).map((_, index) => {
-                        return <input
-                                    key={index}
-                                    type="checkbox"
-                                    checked={p2Win[index]}
-                                    //onChange={(key) => {handleP2Check(index)}}
-                                />
-                    })}
+                <div className="match-spacer"></div>
+                <div className="match-player-text match-player-holder-bot">
+                    <div className="match-player-name">{curMatch?.p2?.tag || (curMatch.isBye? 'Bye' : 'Player 2')}</div>
+                    <div className="match-game-wins">{curMatch?.winsP2}</div>
                 </div>
             </div>
+            <Modal show={showModal} onHide={(() => handleModal(false))}>
+                <Modal.Header>
+                    <Modal.Title>{curMatch?.isBye.toString()}</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <div className="match-modal">
+                        <div className="match-popup">
+                            <div className="match-popup-player-name">{curMatch?.p1?.tag || (curMatch.isBye? 'Bye' : 'Player 1')}</div>
+                            <input
+                                className="game-wins"
+                                type='number'
+                                value={tempWinsP1}
+                                onChange={e => setTempWinsP1(Number(e.target.value))}
+                            />
+                        </div>
+                        <div className="versus">vs</div>
+                        <div className="match-popup">
+                            <div className="match-popup-player-name">{curMatch?.p2?.tag || (curMatch.isBye? 'Bye' : 'Player 2')}</div>
+                            <input
+                                className="game-wins"
+                                type='number'
+                                value={tempWinsP2}
+                                onChange={e => setTempWinsP2(Number(e.target.value))}
+                            />
+                        </div>
+                    </div>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant='primary' onClick={handleSubmitMatchChange}>
+                        Submit
+                    </Button>
+                    <Button variant='danger' onClick={() => handleModal(false)}>
+                        Cancel
+                    </Button>
+                </Modal.Footer>
+            </Modal>
         </>
     );
 }

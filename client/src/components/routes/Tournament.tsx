@@ -88,7 +88,7 @@ export default function Tournament(props: any) {
         setTourneyData((): SingleBracket => {
             return {
                 playerList: jsonData.entrants.map((e: any, i: number): Player => {
-                    return {
+                    return {    // can do the 'isbye' check here
                         seed: i+1,
                         tag: e.tag,
                         isHuman: true,
@@ -144,6 +144,7 @@ export default function Tournament(props: any) {
         } else {
             let playerListWithByes = [...tourneyData.playerList];
             while (Math.floor(Math.log2(playerListWithByes.length)) != Math.log2(playerListWithByes.length)) {
+                // will need to be fixed, probably should be null
                 let newBye: Player = {
                     seed: playerListWithByes.length,
                     tag: 'Bye',
@@ -154,18 +155,23 @@ export default function Tournament(props: any) {
             let seedOrder = createPlayerOrder(playerListWithByes.length);
             let newMatches = [...tourneyData.roundList[0]];
             newMatches = newMatches.map((e: any, i: number): MatchObj => {
+                console.log('debug:');
+                console.log(e.matchCol+', '+e.matchRow);
+                console.log(!playerListWithByes[seedOrder[i*2]-1].isHuman || !playerListWithByes[seedOrder[i*2+1]-1].isHuman);
                 return {
                     ...e,
                     p1: playerListWithByes[seedOrder[i*2]-1],
                     p2: playerListWithByes[seedOrder[i*2+1]-1],
                     winner: null,
-                    loser: null
+                    loser: null,
+                    isBye: ( !playerListWithByes[seedOrder[i*2]-1].isHuman || !playerListWithByes[seedOrder[i*2+1]-1].isHuman)
                 }
             });
             setTourneyData((prev: SingleBracket): SingleBracket => {
                 return {
                     playerList: prev.playerList,
-                    roundList: [newMatches, ...prev.roundList.slice(1)]
+                    roundList: [newMatches, ...prev.roundList.slice(1)] // probably need to reset all matches and not just first row
+                    standingsList: []
                 }
             });
 
@@ -234,6 +240,81 @@ export default function Tournament(props: any) {
         }
     }
 
+    const setMatchRecursive: any = (matchCol: number,
+        matchRow: number,
+        winsForP1: number,
+        winsForP2: number,
+        winner: Player | null,
+        newP1: Player | null,
+        newP2: Player | null) => {
+
+        const isEvenRow: boolean = (matchRow%2 == 0);
+        
+/*         console.log('debug:');
+        console.log(isEvenRow);
+        console.log(matchCol);
+        console.log(matchRow);
+        console.log(tourneyData.roundList); */
+        if (matchCol == tourneyData.roundList.length-1 ||
+            (isEvenRow && winner?.id == tourneyData.roundList[matchCol+1][Math.floor(matchRow/2)].p1?.id) ||
+            (!isEvenRow && winner?.id == tourneyData.roundList[matchCol+1][Math.floor(matchRow/2)].p2?.id)) {
+            return [{...tourneyData.roundList[matchCol][matchRow],
+                winsP1: winsForP1,
+                winsP2: winsForP2,
+                winner: winner,
+                ...(newP1 != null && { p1: newP1 }),
+                ...(newP2 != null && { p2: newP2 })
+            }];
+        } else {
+            return [{...tourneyData.roundList[matchCol][matchRow],
+                winsP1: winsForP1,
+                winsP2: winsForP2,
+                winner: winner,
+                ...(newP1 != null && { p1: newP1 }),
+                ...(newP2 != null && { p2: newP2 })
+            }, ...(isEvenRow?
+                setMatchRecursive(matchCol+1, Math.floor(matchRow/2), 0, 0, null, winner, null)
+                :
+                setMatchRecursive(matchCol+1, Math.floor(matchRow/2), 0, 0, null, null, winner)
+            )]
+        }
+    }
+
+    const setMatchResults: any = async (matchRow: number,
+        matchCol: number,
+        winsForP1: number,
+        winsForP2: number,
+        winner: Player | null,
+        newP1: Player | null,
+        newP2: Player | null) => {
+        let newMatches = setMatchRecursive(matchCol, matchRow, winsForP1, winsForP2, winner, newP1, newP2);
+
+        const response = await fetch(import.meta.env.VITE_API_URL+`matches/update`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'content-type': 'application/json'
+            }, body: JSON.stringify({
+                matches: newMatches
+            })
+        });
+        const newMatchJson = await response.json();
+        if (response.status == 200) {
+            console.log('updating matches');
+            socket.emit('matches updated', newMatchJson);
+        }
+
+        let newRoundList = tourneyData.roundList;
+        newMatches.map((e: any, i: number) => {
+            newRoundList[e.matchCol][e.matchRow] = e;
+            return;
+        });
+        setTourneyData({
+            ...tourneyData,
+            roundList: newRoundList
+        });
+    }
+
     return (
         <div className="p-3">
             <div className="text-3xl">
@@ -257,7 +338,7 @@ export default function Tournament(props: any) {
                 <Button onClick={handleStart}>Start Tournament</Button><Button onClick={handleReset}>Reset</Button>
             </div>
             {tourneyData?
-                <SEBracket bracketData={tourneyData} />
+                <SEBracket bracketData={tourneyData} setMatchResults={setMatchResults} />
                 :
                 <></>
             }

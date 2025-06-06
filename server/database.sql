@@ -83,6 +83,10 @@ create table public.matches (
     m_row int,
     m_col int,
 
+    wins_needed int,
+    wins_p1 int DEFAULT 0,
+    wins_p2 int DEFAULT 0,
+
     p1_id uuid REFERENCES auth.users,
     CONSTRAINT fk_p1_id
         FOREIGN KEY (p1_id)

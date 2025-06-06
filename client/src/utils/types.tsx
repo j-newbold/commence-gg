@@ -18,14 +18,20 @@ export type MatchObj = {
     p2Input?: [number, number, number, boolean] | null;
     p2SetWinsNeeded?: number;
     matchId: number;
+    winsNeeded?: number;    // need to add game wins
+    winsP1?: number;
+    winsP2?: number;
 
     matchCol?: number;
     matchRow?: number;
+
+    isBye?: boolean;
 }
 
 export type FinalsMatchObj = MatchObj & {
 }
 
+// probably deprecated
 export type Round = {
     matchList: MatchObj[];
     roundId: number;
@@ -42,7 +48,13 @@ export type SingleBracket = {
 export type FullTournament = {
     bracketList: SingleBracket[];
     entrantList: Player[];
-    standings: Player[];
+    standingsList?: (Player | null)[];
+}
+
+// may use this later
+export type TournamentStanding = {
+    player: Player;
+    place: number;
 }
 
 // this will eventually be deprecated

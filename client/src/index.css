@@ -72,6 +72,7 @@
 
 .round {
     display: flex;
+    width: 200px;
 }
 
 .rr-match-holder {
@@ -100,9 +101,87 @@
 }
 
 .match-holder {
-    border: 2px solid;
-    border-radius: 10px;
-    padding: 5px;
+    width: 180px;
+    height: 50px;
+    box-sizing: border-box;
+}
+.match-player-text {
+    display: flex;
+    flex-direction: row;
+    font-family: "Roboto","Helvetica","Arial",sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+}
+
+.match-holder:hover .match-player-holder-top {
+    border-color: #cdcccc;
+}
+.match-holder:hover .match-player-holder-bot {
+    border-color: #cdcccc;
+}
+.match-holder:hover {
+    cursor: pointer;
+}
+
+.match-popup-player-name {
+}
+.game-wins{
+    border: none;
+    text-align: center;
+    background-color: inherit;
+    width: 100px;
+    border: 2px solid transparent;
+}
+.game-wins:focus {
+    border-color: black;
+}
+
+.match-popup {
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+}
+
+.versus {
+    margin-left: 20px;
+    margin-right: 20px;
+}
+
+.match-modal {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+}
+
+.match-player-holder-top {
+    border: solid #e6e6e6;
+    border-width: 2px 2px 0px 2px;
+    padding-left: 8px;
+    padding-right: 4px;
+    box-sizing: border-box;
+}
+.match-player-holder-bot {
+    border: solid #e6e6e6;
+    border-width: 0px 2px 2px 2px;
+    padding-left: 8px;
+    padding-right: 4px;
+    box-sizing: border-box;
+}
+.match-spacer {
+    display: block;
+    height: 0;
+    width: 100%;
+    border: 2px solid #e6e6e6;
+    border-top: 0;
+}
+
+.match-player-name {
+    margin-left: 0;
+    margin-right: auto;
+}
+.match-game-wins {
+    margin-right: 0;
+    margin-left: 0;
 }
 
 a {
