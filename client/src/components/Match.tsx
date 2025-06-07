@@ -17,7 +17,6 @@ export default function Match(props: any) {
     const didMountP2SetWins = useRef(0);
 
     useEffect(() => {
-        console.log(props.matchProp);
         setCurMatch(props.matchProp);
         setTempWinsP1(props.matchProp.winsP1);
         setTempWinsP2(props.matchProp.winsP2);

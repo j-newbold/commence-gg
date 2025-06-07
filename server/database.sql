@@ -42,6 +42,9 @@ create table public.e_entrants (
 
 create table public.t_entrants (
     entrant_id SERIAL PRIMARY KEY,
+
+    placement int,
+
     tournament_id int,
     CONSTRAINT fk_tournament_id
         FOREIGN KEY (tournament_id)
@@ -57,6 +60,9 @@ create TYPE bracket_type as ENUM ('double_elim', 'single_elim', 'round_robin');
 
 create table public.b_entrants (
     b_entrant_id SERIAL PRIMARY KEY,
+
+    placement int,
+
     bracket_id int,
     CONSTRAINT fk_bracket_id
         FOREIGN KEY (bracket_id)
@@ -76,6 +82,22 @@ create table public.brackets (
         FOREIGN KEY (tournament_id)
         REFERENCES tournaments(tournament_id) ON DELETE CASCADE
 );
+
+create table public.t_standings (
+    st_id SERIAL PRIMARY KEY,
+
+    placement int,
+
+    player_id uuid references auth.users,
+    CONSTRAINT fk_player_id
+        FOREIGN KEY (player_id)
+        REFERENCES auth.users(id),
+
+    tournament_id int,
+    CONSTRAINT fk_tournament_id
+        FOREIGN KEY (tournament_id)
+        REFERENCES tournaments(tournament_id) ON DELETE CASCADE
+)
 
 create table public.matches (
     match_id SERIAL PRIMARY KEY,

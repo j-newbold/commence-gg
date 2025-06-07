@@ -8,7 +8,7 @@ import sql from '../db';
 router.post('/update', async (req: Request, res: Response) => {
     try {
         let values = [];
-        console.log(req.body.matches);
+        console.log('matches:');
         for (var ma of req.body.matches) {
             values.push([(ma.p1?.id? ma.p1.id : null),
                 (ma.p2?.id? ma.p2.id : null),

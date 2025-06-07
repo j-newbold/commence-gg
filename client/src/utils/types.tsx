@@ -40,21 +40,19 @@ export type Round = {
 export type SingleBracket = {
     roundList: Round[][];
 
-    playerList?: Player[]
+    playerList?: Entrant[]
 
     finals?: MatchObj | null;
+}
+
+export type Entrant = {
+    player: Player;
+    placement: number | null;
 }
 
 export type FullTournament = {
     bracketList: SingleBracket[];
     entrantList: Player[];
-    standingsList?: (Player | null)[];
-}
-
-// may use this later
-export type TournamentStanding = {
-    player: Player;
-    place: number;
 }
 
 // this will eventually be deprecated

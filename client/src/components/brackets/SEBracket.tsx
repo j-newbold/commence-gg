@@ -7,6 +7,8 @@ import Dropdown from 'react-bootstrap/Dropdown';
 import { sumBooleans } from '../../utils/misc.tsx';
 import { SingleBracket, MatchObj, Round, Player, RRPool, ElimBracket, FinalsMatchObj } from '../../utils/types.tsx';
 
+const offset = 320;
+
 export default function SEBracket({bracketData, ...props}: {bracketData: SingleBracket;
                                                             [key: string]: any;
 }) {
@@ -127,7 +129,7 @@ export default function SEBracket({bracketData, ...props}: {bracketData: SingleB
     return (
                 <div className="bracket"
                     style={{
-                        top: String(225)+'px',
+                        top: String(offset)+'px',
                         position: 'absolute'
                 }}>
                     {bracketData.roundList.map((rd, rIndex) => (

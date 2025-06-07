@@ -3,7 +3,7 @@ import { useParams, useLocation } from "react-router";
 import io from 'socket.io-client';
 import Button from 'react-bootstrap/Button';
 import { useAuth } from "../../context/AuthContext";
-import { Player, SingleBracket, ElimBracket, Round, MatchObj } from '../../utils/types';
+import { Player, SingleBracket, ElimBracket, Round, MatchObj, Entrant } from '../../utils/types';
 import { createPlayerOrder } from "../../utils/misc";
 
 import SEBracket from '../brackets/SEBracket';
@@ -38,7 +38,7 @@ export default function Tournament(props: any) {
             })
 
             socket.on('signup removed', (id) => {
-                setTourneyData((prev: any) => ({...prev, playerList: prev.playerList.filter((el: any) => el.id != id)}));
+                setTourneyData((prev: any) => ({...prev, playerList: prev.playerList.filter((el: any) => el.player.id != id)}));
             })
 
             socket.on('matches updated', (matches) => {
@@ -67,7 +67,7 @@ export default function Tournament(props: any) {
         tourneyDataRef.current = tourneyData;
         if (session && tourneyData?.playerList) {
             setIsSignedUp(tourneyData.playerList.some((e:any) => {
-                return session.user.id === e.id
+                return session.user.id === e.player.id
             }));
         }
     }, [tourneyData])
@@ -87,12 +87,15 @@ export default function Tournament(props: any) {
         // currently coded as a SingleBracket but should be a FullTournament
         setTourneyData((): SingleBracket => {
             return {
-                playerList: jsonData.entrants.map((e: any, i: number): Player => {
+                playerList: jsonData.entrants.map((e: any, i: number): Entrant => {
                     return {    // can do the 'isbye' check here
-                        seed: i+1,
-                        tag: e.tag,
-                        isHuman: true,
-                        id: e.id
+                        player: {
+                            seed: i+1,
+                            tag: e.tag,
+                            isHuman: true,
+                            id: e.id
+                        },
+                        placement: e.placement
                     }
                 }),
                 roundList: jsonData.brackets[0].roundList
@@ -103,23 +106,35 @@ export default function Tournament(props: any) {
     const handleReset = async () => {
         let newMatches = tourneyData.roundList.map((e: any, i: number) => {
             return e.map((f: any, j: number) => {
-                console.log(f);
-                return { ...f,  // the problem is in here somewhere
+                return { ...f,
                     p1: null,
                     p2: null,
                     winner: null,
-                    loser: null,
+                    loser: null
                 }
             })
         })
         setTourneyData((prev: SingleBracket): SingleBracket => {
             return {
-                playerList: prev.playerList,
+                playerList: prev.playerList?.map((e: any, i: number) => {
+                        return {
+                            ...e,
+                            placement: null
+                        }
+                    }),
                 roundList: newMatches
             }
         });
 
         newMatches = newMatches.flat();
+
+        const stResponse = await fetch(import.meta.env.VITE_API_URL+`tournaments/${tid}/resetStandings`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'content-type': 'application/json'
+            }
+        });
 
         const response = await fetch(import.meta.env.VITE_API_URL+`matches/update`, {
             method: 'POST',
@@ -132,7 +147,6 @@ export default function Tournament(props: any) {
         });
         const newMatchJson = await response.json();
         if (response.status == 200) {
-            console.log('updating matches');
             socket.emit('matches updated', newMatchJson);
         }
     }
@@ -145,33 +159,33 @@ export default function Tournament(props: any) {
             let playerListWithByes = [...tourneyData.playerList];
             while (Math.floor(Math.log2(playerListWithByes.length)) != Math.log2(playerListWithByes.length)) {
                 // will need to be fixed, probably should be null
-                let newBye: Player = {
-                    seed: playerListWithByes.length,
-                    tag: 'Bye',
-                    isHuman: false
+                let newBye: Entrant = {
+                    player: {
+                        seed: playerListWithByes.length,
+                        tag: 'Bye',
+                        isHuman: false
+                    },
+                    placement: null
                 }
                 playerListWithByes.push(newBye);
             }
             let seedOrder = createPlayerOrder(playerListWithByes.length);
             let newMatches = [...tourneyData.roundList[0]];
             newMatches = newMatches.map((e: any, i: number): MatchObj => {
-                console.log('debug:');
-                console.log(e.matchCol+', '+e.matchRow);
-                console.log(!playerListWithByes[seedOrder[i*2]-1].isHuman || !playerListWithByes[seedOrder[i*2+1]-1].isHuman);
+                //console.log(!playerListWithByes[seedOrder[i*2]-1].player.isHuman || !playerListWithByes[seedOrder[i*2+1]-1].player.isHuman);
                 return {
                     ...e,
-                    p1: playerListWithByes[seedOrder[i*2]-1],
-                    p2: playerListWithByes[seedOrder[i*2+1]-1],
+                    p1: playerListWithByes[seedOrder[i*2]-1].player,
+                    p2: playerListWithByes[seedOrder[i*2+1]-1].player,
                     winner: null,
                     loser: null,
-                    isBye: ( !playerListWithByes[seedOrder[i*2]-1].isHuman || !playerListWithByes[seedOrder[i*2+1]-1].isHuman)
+                    isBye: ( !playerListWithByes[seedOrder[i*2]-1].player.isHuman || !playerListWithByes[seedOrder[i*2+1]-1].player.isHuman)
                 }
             });
             setTourneyData((prev: SingleBracket): SingleBracket => {
                 return {
-                    playerList: prev.playerList,
+                    playerList: prev.playerList?.map((e: any, i: number) => ({...e, placement: null})),
                     roundList: [newMatches, ...prev.roundList.slice(1)] // probably need to reset all matches and not just first row
-                    standingsList: []
                 }
             });
 
@@ -186,7 +200,6 @@ export default function Tournament(props: any) {
             });
             const newMatchJson = await response.json();
             if (response.status == 200) {
-                console.log('updating matches');
                 socket.emit('matches updated', newMatchJson);
             }
         }
@@ -300,7 +313,6 @@ export default function Tournament(props: any) {
         });
         const newMatchJson = await response.json();
         if (response.status == 200) {
-            console.log('updating matches');
             socket.emit('matches updated', newMatchJson);
         }
 
@@ -324,11 +336,24 @@ export default function Tournament(props: any) {
                 <div>Entrants:
                     {tourneyData.playerList.map((e: any, i: number) => {
                         return (
-                            <div key={i}>{e.tag}</div>
+                            <div key={i}>{e.player.tag}</div>
                         );
                     })}
                 </div>
             : <></>}
+            {tourneyData?.playerList?
+                <div>Standings:
+                    {/* will need to sort this list*/}
+                    {tourneyData.playerList.map((e: any, i: number) => {
+                        return (
+                            <div key={i}>
+                                ({i+1}{'. '}{e.placement? 'not null' : 'null'})
+                            </div>
+                        );
+                    })}
+                </div>
+            :
+            <></>}
             {canSignUp?
                 <>{!isSignedUp? <Button onClick={handleSignup} >Sign Up</Button> : <Button onClick={handleSignup} >Remove Signup</Button>}</>
                 :

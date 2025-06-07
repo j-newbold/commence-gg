@@ -6,11 +6,25 @@ import { Socket } from 'socket.io';
 
 import sql from '../db';
 
+router.post('/:id/resetStandings', async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        await sql`UPDATE t_entrants
+            SET placement = null
+            WHERE tournament_id = ${id}`;
+
+        res.status(200);
+    } catch (error) {
+        console.log(error);
+    }
+})
+
 router.get('/:id', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
 
-        const entrants = await sql`SELECT p.tag, p.id from profiles p
+        const entrants = await sql`SELECT p.tag, p.id, tent.placement from profiles p
             left join t_entrants tent
             on p.id = tent.user_id
             where tent.tournament_id = ${id}`;
@@ -39,7 +53,6 @@ router.get('/:id', async (req: Request, res: Response) => {
             WHERE b.tournament_id = ${1}
             ORDER BY b.bracket_id ASC, m.m_col ASC, m.m_row ASC`;
         //let bracketList: any[] = [];
-
 
         let bracketMap = new Map();
         let newBracketInfo: any;
@@ -89,8 +102,6 @@ router.get('/:id', async (req: Request, res: Response) => {
             bracketMap.set(bracketInfo[i].bracket_id, newBracketInfo);
 
         }
-
-
 
         res.json({
             entrants: entrants,
@@ -144,35 +155,6 @@ interface tourneyData {
     numConns: number;
     data: any;
 }
-interface inputTidbit {
-
-}
-let testTourney: any = {
-    tEntrants: [{tag: 'jesse'},
-        {tag: 'alice'},
-        {tag: 'bob'},
-        {tag: 'clyde'}
-    ],
-    tStandings: [],
-    outputInfo: [{
-        fromBracket: 0,
-        numPlayers: 4
-    }],
-    bracketList: [{
-        bracketType: 'single_elim',
-        inputInfo: {
-            fromBracket: -1,
-            order: 1,
-            numEntrants: 4
-        },
-        bracketStruct: {
-
-        },
-        brEntrants: [],
-        brStandings: []
-    }]
-    };
-let tournamentCache: { [id: string] : tourneyData } = {};
 
 /* const handleTournamentSockets = async (socket: Socket) => {
     console.log('a user connected to tournament socket');

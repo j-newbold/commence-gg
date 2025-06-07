@@ -27,6 +27,8 @@ const { router: tournamentRouter, handleTournamentSockets } = require('./api/tou
 app.use('/tournaments', tournamentRouter);
 const matchRouter = require('./api/matches.ts');
 app.use('/matches', matchRouter);
+const entrantRouter = require('./api/entrants.ts');
+app.use('/entrants', entrantRouter);
 
 app.get('/', (req: Request, res: Response) => {
     const response = { msg: "response from server: ok!"};
