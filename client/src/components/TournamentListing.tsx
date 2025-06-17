@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import Button from 'react-bootstrap/Button';
+import ListGroup from "react-bootstrap/ListGroup";
 
 export default function TournamentListing(props:any) {
 
@@ -11,14 +12,12 @@ export default function TournamentListing(props:any) {
     }
     
     return (
-        <div className=''
+        <ListGroup.Item style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between'}}>
+            <div 
             onClick={() => renderTournament(props.event.event_id, props.tournament.tournament_id, props.canSignUp)}>
-            <div>
                 {props.tournament.tournament_name}
             </div>
-            <div>
-                <Button>Click me</Button>
-            </div>
-        </div>
+            {props.isAdmin? <Button variant='danger'>Delete</Button> : <></>}
+        </ListGroup.Item>
     );
 }

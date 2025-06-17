@@ -6,6 +6,31 @@ import { Socket } from 'socket.io';
 
 import sql from '../db';
 
+router.post('/create', async (req: Request, res: Response) => {
+    try {
+        const data = await sql`INSERT INTO tournaments
+            (event_id, tournament_name)
+            VALUES (${req.body.eventId}, ${req.body.name})
+            RETURNING event_id, tournament_id, tournament_name`;
+            
+        const bData = await sql`INSERT INTO brackets
+            (tournament_id, b_type, wins_needed_default)
+            VALUES (${data[0].tournament_id}, ${req.body.type}, ${req.body.winsNeeded})
+            RETURNING b_type, wins_needed_default`;
+
+        const respData = 
+        res.status(200).json({
+            eventId: data[0].event_id,
+            tournamentId: data[0].tournament_id,
+            name: data[0].tournament_name,
+            type: bData[0].b_type,
+            winsNeeded: bData[0].wins_needed_default
+        });
+    } catch (error) {
+        console.log(error);
+    }
+})
+
 router.post('/:id/resetStandings', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
@@ -14,7 +39,7 @@ router.post('/:id/resetStandings', async (req: Request, res: Response) => {
             SET placement = null
             WHERE tournament_id = ${id}`;
 
-        res.status(200);
+        res.status(200).send();
     } catch (error) {
         console.log(error);
     }
@@ -50,7 +75,7 @@ router.get('/:id', async (req: Request, res: Response) => {
             left join
               profiles p2
             ON p2.id = m.p2_id
-            WHERE b.tournament_id = ${1}
+            WHERE b.tournament_id = ${id}
             ORDER BY b.bracket_id ASC, m.m_col ASC, m.m_row ASC`;
         //let bracketList: any[] = [];
 
@@ -129,6 +154,7 @@ router.get('/:id/entrants', async (req: Request, res: Response) => {
 router.post('/:id/signup/:userid', async (req: Request, res: Response) => {
     const { id, userid } = req.params;
     try {
+        // this probably could be cleaned up
         const data = await sql`insert into t_entrants (tournament_id, user_id)
             values (${req.body.tournamentId}, ${req.body.userId})`;
         const retData = await sql`select p.tag, p.id from profiles p

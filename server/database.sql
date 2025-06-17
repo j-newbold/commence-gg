@@ -3,7 +3,7 @@ create table public.events (
     event_name text,
     event_desc text,
     event_start_date DATE,
-    event_creator uuid,
+    event_creator uuid NOT NULL,
     CONSTRAINT fk_event_creator
         FOREIGN KEY (event_creator)
         REFERENCES auth.users(id)
@@ -77,6 +77,7 @@ create table public.b_entrants (
 create table public.brackets (
     bracket_id SERIAL PRIMARY KEY,
     b_type bracket_type,
+    wins_needed_default int,
     tournament_id int,
     CONSTRAINT fk_tournament_id
         FOREIGN KEY (tournament_id)

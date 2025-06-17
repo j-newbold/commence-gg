@@ -55,13 +55,16 @@ io.on('connection', async (socket) => {
         io.emit('signup added', userInfo);
     });
     socket.on('signup removed', async (id) => {
-        console.log('signup removed');
         io.emit('signup removed', id);
     });
 
     socket.on('matches updated', async (newMatchData) => {
         io.emit('matches updated', newMatchData);
     });
+
+    socket.on('placements updated', async (newPlData) => {
+        io.emit('placements updated', newPlData);
+    })
 
     //handleTournamentSockets(socket);
     

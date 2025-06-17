@@ -132,7 +132,7 @@ export default function SEBracket({bracketData, ...props}: {bracketData: SingleB
                         top: String(offset)+'px',
                         position: 'absolute'
                 }}>
-                    {bracketData.roundList.map((rd, rIndex) => (
+                    {bracketData?.roundList?.map((rd, rIndex) => (
                     <div className='round' key={String(rIndex)}
                         style={{
                             position: 'absolute',
@@ -140,7 +140,7 @@ export default function SEBracket({bracketData, ...props}: {bracketData: SingleB
                             top: '50px'
                     }}>
                         Round {rIndex+1}
-                        {rd.map((ma: any, ind: number) => (
+                        {rd && rd.map((ma: any, ind: number) => (
                             <Match
                                 key={String(ind)}
                                 style={{

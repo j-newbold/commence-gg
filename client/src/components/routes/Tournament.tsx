@@ -42,11 +42,27 @@ export default function Tournament(props: any) {
             })
 
             socket.on('matches updated', (matches) => {
-                let newRoundList = tourneyDataRef.current.roundList;   // error is here somewhere
-                for (var ma of matches) {
+                let newRoundList = tourneyDataRef.current.roundList;
+                matches?.forEach((ma: any) => {
                     newRoundList[ma.matchCol][ma.matchRow] = ma;
-                }
+                });
                 setTourneyData((prev: any) => ({...prev, roundList: newRoundList}));
+            })
+
+            socket.on('placements updated', (placements) => {
+                let newPlayerList = tourneyDataRef.current.playerList;
+                let placementMap = new Map();
+                placements?.forEach((pl: any) => {
+                    placementMap.set(pl.player.id, pl);
+                });
+                newPlayerList = newPlayerList.map((e: any, i: number) => {
+                    if (placementMap.has(e.player.id)) {
+                        return placementMap.get(e.player.id);
+                    } else {
+                        return e;
+                    }
+                })
+                setTourneyData((prev: any) => ({...prev, playerList: newPlayerList}))
             })
 
             setCanSignUp(location.state.canSignUp);
@@ -110,7 +126,9 @@ export default function Tournament(props: any) {
                     p1: null,
                     p2: null,
                     winner: null,
-                    loser: null
+                    winsP1: 0,
+                    winsP2: 0,
+                    isBye: false
                 }
             })
         })
@@ -145,9 +163,10 @@ export default function Tournament(props: any) {
                 matches: newMatches
             })
         });
-        const newMatchJson = await response.json();
+        const [newMatchJson, newPlJson] = await response.json();
         if (response.status == 200) {
             socket.emit('matches updated', newMatchJson);
+            socket.emit('placements updated', newPlJson);
         }
     }
 
@@ -171,6 +190,15 @@ export default function Tournament(props: any) {
             }
             let seedOrder = createPlayerOrder(playerListWithByes.length);
             let newMatches = [...tourneyData.roundList[0]];
+
+            // notes @ end of 6/16
+            // double for-loop through numPlayers, divide by 2 each outer loop
+            // count by 2 each inner loop
+            // create a match object, populate round 1 with players like is already done
+            // send off to router.post('/create')
+
+
+
             newMatches = newMatches.map((e: any, i: number): MatchObj => {
                 //console.log(!playerListWithByes[seedOrder[i*2]-1].player.isHuman || !playerListWithByes[seedOrder[i*2+1]-1].player.isHuman);
                 return {
@@ -198,9 +226,10 @@ export default function Tournament(props: any) {
                     matches: newMatches
                 })
             });
-            const newMatchJson = await response.json();
+            const [matchResp, plResp] = await response.json();
             if (response.status == 200) {
-                socket.emit('matches updated', newMatchJson);
+                socket.emit('matches updated', matchResp);
+                socket.emit('placements updated', plResp);
             }
         }
     }
@@ -262,7 +291,62 @@ export default function Tournament(props: any) {
         newP2: Player | null) => {
 
         const isEvenRow: boolean = (matchRow%2 == 0);
+/*         console.log(matchCol);
+        console.log(matchRow);
+        console.log(tourneyData[matchCol][matchRow]); */
+        let curP1 = (newP1? newP1 : tourneyData.roundList[matchCol][matchRow].p1);
+        let curP2 = (newP2? newP2 : tourneyData.roundList[matchCol][matchRow].p2);
         
+        let placementArr = [];
+        // build array of placements
+        if (!winner) {
+            // may create duplicates
+            if (curP1) {
+                placementArr.push({
+                    player: curP1,
+                    placement: null
+                });
+            }
+            if (curP2) {
+                placementArr.push({
+                    player: curP2,
+                    placement: null
+                });
+            }
+        } else {
+            if (curP1?.id == winner.id) {
+                if (matchCol == tourneyData.roundList.length-1) {
+                    placementArr.push({
+                        player: curP1,
+                        placement: 1
+                    },{
+                        player: curP2,
+                        placement: 2
+                    })
+                } else {
+                    placementArr.push({
+                        player: curP2,
+                        placement: (Math.pow(2, Math.ceil(Math.log(tourneyData.playerList.length)/Math.log(2)))/Math.pow(2,(matchCol+1)))+1
+                    })
+                }
+            } else if (curP2?.id == winner.id) {
+                if (matchCol == tourneyData.roundList.length-1) {
+                    placementArr.push({
+                        player: curP2,
+                        placement: 1
+                    },{
+                        player: curP1,
+                        placement: 2
+                    })
+                } else {
+                    placementArr.push({
+                        player: curP1,
+                        placement: (Math.pow(2, Math.ceil(Math.log(tourneyData.playerList.length)/Math.log(2)))/Math.pow(2,(matchCol+1)))+1
+                    })
+                }
+            }
+        }
+
 /*         console.log('debug:');
         console.log(isEvenRow);
         console.log(matchCol);
@@ -271,25 +355,26 @@ export default function Tournament(props: any) {
         if (matchCol == tourneyData.roundList.length-1 ||
             (isEvenRow && winner?.id == tourneyData.roundList[matchCol+1][Math.floor(matchRow/2)].p1?.id) ||
             (!isEvenRow && winner?.id == tourneyData.roundList[matchCol+1][Math.floor(matchRow/2)].p2?.id)) {
-            return [{...tourneyData.roundList[matchCol][matchRow],
+            return [[{...tourneyData.roundList[matchCol][matchRow],
                 winsP1: winsForP1,
                 winsP2: winsForP2,
                 winner: winner,
                 ...(newP1 != null && { p1: newP1 }),
                 ...(newP2 != null && { p2: newP2 })
-            }];
+            }],
+            placementArr
+        ];
         } else {
-            return [{...tourneyData.roundList[matchCol][matchRow],
+            const recResult = setMatchRecursive(matchCol+1, Math.floor(matchRow/2), 0, 0, null,
+                (isEvenRow? winner : null), (isEvenRow? null : winner));
+            return [[{...tourneyData.roundList[matchCol][matchRow],
                 winsP1: winsForP1,
                 winsP2: winsForP2,
                 winner: winner,
                 ...(newP1 != null && { p1: newP1 }),
                 ...(newP2 != null && { p2: newP2 })
-            }, ...(isEvenRow?
-                setMatchRecursive(matchCol+1, Math.floor(matchRow/2), 0, 0, null, winner, null)
-                :
-                setMatchRecursive(matchCol+1, Math.floor(matchRow/2), 0, 0, null, null, winner)
-            )]
+            }, ...(recResult[0])],
+            [...placementArr, ...(recResult[1])]];
         }
     }
 
@@ -300,7 +385,18 @@ export default function Tournament(props: any) {
         winner: Player | null,
         newP1: Player | null,
         newP2: Player | null) => {
-        let newMatches = setMatchRecursive(matchCol, matchRow, winsForP1, winsForP2, winner, newP1, newP2);
+        let [newMatches, newPlacements] = setMatchRecursive(matchCol, matchRow, winsForP1, winsForP2, winner, newP1, newP2);
+
+        // remove duplicates from placement array
+        let placementSet = new Set();
+        newPlacements = newPlacements.reduce((memo: any, iteratee: any) => {
+            if (!placementSet.has(iteratee.player.id)) {
+                placementSet.add(iteratee.player.id);
+                memo.push(iteratee);
+            }
+
+            return memo;
+        }, []);
 
         const response = await fetch(import.meta.env.VITE_API_URL+`matches/update`, {
             method: 'POST',
@@ -308,12 +404,14 @@ export default function Tournament(props: any) {
             headers: {
                 'content-type': 'application/json'
             }, body: JSON.stringify({
-                matches: newMatches
+                matches: newMatches,
+                placements: newPlacements
             })
         });
-        const newMatchJson = await response.json();
+        const respJson = await response.json();
         if (response.status == 200) {
-            socket.emit('matches updated', newMatchJson);
+            socket.emit('matches updated', respJson[0]);
+            socket.emit('placements updated', respJson[1]);
         }
 
         let newRoundList = tourneyData.roundList;
@@ -344,11 +442,16 @@ export default function Tournament(props: any) {
             {tourneyData?.playerList?
                 <div>Standings:
                     {/* will need to sort this list*/}
-                    {tourneyData.playerList.map((e: any, i: number) => {
+                    {tourneyData.playerList.sort((a: any, b: any) => {
+                        return (a.placement - b.placement)
+                    }).map((e: any, i: number) => {
                         return (
-                            <div key={i}>
-                                ({i+1}{'. '}{e.placement? 'not null' : 'null'})
-                            </div>
+                            e.placement?
+                                <div key={i}>
+                                    {e.placement}{'. '}{e.player.tag}
+                                </div>
+                                :
+                                <span key={i}></span>
                         );
                     })}
                 </div>
@@ -360,7 +463,7 @@ export default function Tournament(props: any) {
                 <>Register for the event to sign up for this tournament!</>
             }
             <div>
-                <Button onClick={handleStart}>Start Tournament</Button><Button onClick={handleReset}>Reset</Button>
+                <Button onClick={handleStart}>Initialize Tournament</Button><Button onClick={handleReset}>Reset</Button>
             </div>
             {tourneyData?
                 <SEBracket bracketData={tourneyData} setMatchResults={setMatchResults} />
