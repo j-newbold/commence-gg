@@ -43,6 +43,8 @@ export type SingleBracket = {
     playerList?: Entrant[]
 
     finals?: MatchObj | null;
+
+    winsNeeded: number | null;
 }
 
 export type Entrant = {

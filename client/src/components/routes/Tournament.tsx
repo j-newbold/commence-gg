@@ -97,6 +97,7 @@ export default function Tournament(props: any) {
             }
         });
         const jsonData = await response.json();
+        console.log(jsonData);
         
         setBracketNum(0); // hardcoded because we currently assume 1 bracket
 
@@ -114,7 +115,8 @@ export default function Tournament(props: any) {
                         placement: e.placement
                     }
                 }),
-                roundList: jsonData.brackets[0].roundList
+                roundList: (jsonData.brackets[0]?.roundList || null),
+                winsNeeded: (jsonData.brackets[0]?.wins_needed_default || null)
             }
         });
     }
@@ -134,6 +136,7 @@ export default function Tournament(props: any) {
         })
         setTourneyData((prev: SingleBracket): SingleBracket => {
             return {
+                ...prev,
                 playerList: prev.playerList?.map((e: any, i: number) => {
                         return {
                             ...e,
@@ -172,7 +175,7 @@ export default function Tournament(props: any) {
 
     const handleStart = async () => {
         // assume bracket_type is single elim
-        if (tourneyData.playerList.length > tourneyData.roundList.length*2) {
+        if (1>2/*tourneyData.playerList.length > tourneyData.roundList.length*2*/) {
             console.log('too many players for this bracket');
         } else {
             let playerListWithByes = [...tourneyData.playerList];
@@ -189,7 +192,24 @@ export default function Tournament(props: any) {
                 playerListWithByes.push(newBye);
             }
             let seedOrder = createPlayerOrder(playerListWithByes.length);
-            let newMatches = [...tourneyData.roundList[0]];
+            let newMatches: any[] = [];
+
+            let mList = [];
+            for (let i=0;i<Math.log2(playerListWithByes.length);i++) {
+                for (let j=0;j<playerListWithByes.length/Math.pow(2,i);j+=2) {
+                    mList.push({
+                        p1: (i==0? playerListWithByes[seedOrder[j]-1] : null),
+                        p2: (i==0? playerListWithByes[seedOrder[j+1]-1] : null),
+                        winner: null,
+                        winsP1: 0,
+                        winsP2: 0,
+                        isBye: (i==0? (playerListWithByes[seedOrder[j]-1].tag == 'Bye' || playerListWithByes[seedOrder[j+1]-1].tag == 'Bye'? true : false) : false),
+                        winsNeeded: tourneyData.winsNeeded
+                    })
+                }
+            }
+            console.log('mlist:');
+            console.log(mList);
 
             // notes @ end of 6/16
             // double for-loop through numPlayers, divide by 2 each outer loop
@@ -212,6 +232,7 @@ export default function Tournament(props: any) {
             });
             setTourneyData((prev: SingleBracket): SingleBracket => {
                 return {
+                    ...prev,
                     playerList: prev.playerList?.map((e: any, i: number) => ({...e, placement: null})),
                     roundList: [newMatches, ...prev.roundList.slice(1)] // probably need to reset all matches and not just first row
                 }

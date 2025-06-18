@@ -5,12 +5,18 @@ import { Request, Response } from 'express';
 
 import sql from '../db';
 
+router.post('/create', async (req: Request, res: Response) => {
+    try {
+        
+    } catch (error) {
+        console.log(error);
+    }
+})
+
 router.post('/update', async (req: Request, res: Response) => {
     try {
         let values = [];
         let plVals = [];
-        /* console.log('matches:');
-        console.log(req.body.matches); */
         for (var ma of req.body.matches) {
             values.push([(ma.p1?.id? ma.p1.id : null),
                 (ma.p2?.id? ma.p2.id : null),
@@ -20,7 +26,6 @@ router.post('/update', async (req: Request, res: Response) => {
                 ma.winsP2,
                 ma.isBye]);
         }
-        console.log(req.body.placements);
         const data = await sql`
             UPDATE matches AS m
             SET

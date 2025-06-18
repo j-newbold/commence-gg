@@ -55,7 +55,7 @@ router.get('/:id', async (req: Request, res: Response) => {
             where tent.tournament_id = ${id}`;
 
         var bracketInfo: any = await sql`SELECT * FROM brackets
-            WHERE tournament_id = ${1}
+            WHERE tournament_id = ${id}
             ORDER BY bracket_id`;
 
         // will need to add winner tag as well
@@ -132,7 +132,6 @@ router.get('/:id', async (req: Request, res: Response) => {
             entrants: entrants,
             brackets: Array.from(bracketMap.values()),
         });
-        // will also have to do a sql query for standings
     } catch (error) {
         console.log(error);
     }
