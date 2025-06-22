@@ -50,20 +50,32 @@ const io = new Server(server, {
     },
   });
 io.on('connection', async (socket) => {
+
+    socket.on('joinRoom', (roomName) => {
+        socket.join(roomName);
+    })
         
-    socket.on('signup added', async (userInfo) => {
-        io.emit('signup added', userInfo);
+    socket.on('signup added', async ([userInfo, id]) => {
+        io.to(id).emit('signup added', userInfo);
     });
-    socket.on('signup removed', async (id) => {
-        io.emit('signup removed', id);
-    });
-
-    socket.on('matches updated', async (newMatchData) => {
-        io.emit('matches updated', newMatchData);
+    socket.on('signup removed', async ([userId, id]) => {
+        io.to(id).emit('signup removed', userId);
     });
 
-    socket.on('placements updated', async (newPlData) => {
-        io.emit('placements updated', newPlData);
+    socket.on('matches updated', async ([newMatchData, id]) => {
+        io.to(id).emit('matches updated', newMatchData);
+    });
+
+    socket.on('placements updated', async ([newPlData, id]) => {
+        io.to(id).emit('placements updated', newPlData);
+    })
+
+    socket.on('matches cleared', async (id) => {
+        io.to(id).emit('matches cleared');
+    })
+
+    socket.on('match list created', async ([matchData, id]) => {
+        io.to(id).emit('match list created', matchData);
     })
 
     //handleTournamentSockets(socket);

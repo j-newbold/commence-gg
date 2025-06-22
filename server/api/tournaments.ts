@@ -9,13 +9,13 @@ import sql from '../db';
 router.post('/create', async (req: Request, res: Response) => {
     try {
         const data = await sql`INSERT INTO tournaments
-            (event_id, tournament_name)
-            VALUES (${req.body.eventId}, ${req.body.name})
+            (event_id, tournament_name, status)
+            VALUES (${req.body.eventId}, ${req.body.name}, 'upcoming')
             RETURNING event_id, tournament_id, tournament_name`;
             
         const bData = await sql`INSERT INTO brackets
             (tournament_id, b_type, wins_needed_default)
-            VALUES (${data[0].tournament_id}, ${req.body.type}, ${req.body.winsNeeded})
+            VALUES (${data[0].tournament_id}, ${req.body.type}, ${req.body.winsNeeded},)
             RETURNING b_type, wins_needed_default`;
 
         const respData = 
@@ -45,6 +45,30 @@ router.post('/:id/resetStandings', async (req: Request, res: Response) => {
     }
 })
 
+router.delete('/clear/:id', async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const data = await sql`DELETE FROM matches m
+            WHERE m.bracket_id =
+            (SELECT b.bracket_id from brackets b
+                WHERE b.tournament_id = ${id})`;
+        res.sendStatus(200);
+    } catch (error) {
+        console.log(error);
+    }
+})
+
+router.delete('/:id', async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const data = await sql`DELETE FROM tournaments t
+            WHERE t.tournament_id = ${id}`;
+        res.sendStatus(200);
+    } catch (error) {
+        console.log(error);
+    }
+})
+
 router.get('/:id', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
@@ -54,9 +78,11 @@ router.get('/:id', async (req: Request, res: Response) => {
             on p.id = tent.user_id
             where tent.tournament_id = ${id}`;
 
-        var bracketInfo: any = await sql`SELECT * FROM brackets
-            WHERE tournament_id = ${id}
-            ORDER BY bracket_id`;
+        var bracketInfo: any = await sql`SELECT b.bracket_id, b.tournament_id, b.b_type, b.wins_needed_default, t.status FROM brackets b
+            LEFT JOIN tournaments t
+            ON b.tournament_id = t.tournament_id
+            WHERE b.tournament_id = ${id}
+            ORDER BY b.bracket_id`;
 
         // will need to add winner tag as well
         const matchInfo = await sql`SELECT m.m_row, m.m_col,

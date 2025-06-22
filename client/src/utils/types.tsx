@@ -45,6 +45,11 @@ export type SingleBracket = {
     finals?: MatchObj | null;
 
     winsNeeded: number | null;
+
+    status: string | null;
+
+    bracketId: number | null;
+    tournamentId?: string | null;
 }
 
 export type Entrant = {

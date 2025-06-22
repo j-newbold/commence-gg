@@ -28,13 +28,14 @@ export default function Tournament(props: any) {
         if (effectRan.current || !import.meta.env.VITE_API_URL.includes('localhost')) {
             getTournament();
 
-            socket.on('connect', () => {
+/*             socket.on('connect', (tourneyData.tournamentId) => {
                 console.log('connected to server');
-            });
+            }); */
             
             socket.on('signup added', (userInfo) => {
-                setTourneyData((prev: any) => ({...prev, playerList: [...prev.playerList, userInfo]}));
-
+                setTourneyData((prev: any) => ({...prev, playerList: [...prev.playerList, { player: userInfo,
+                                                                                            placement: null }
+                ]}));
             })
 
             socket.on('signup removed', (id) => {
@@ -65,10 +66,32 @@ export default function Tournament(props: any) {
                 setTourneyData((prev: any) => ({...prev, playerList: newPlayerList}))
             })
 
+            socket.on('matches cleared', () => {
+                setTourneyData((prev: any) => ({
+                    ...prev,
+                    roundList: null
+                }))
+            })
+
+            socket.on('match list created', (matches) => {
+                let newRoundList: any[][] = [];
+                let prevCol = -1;
+                for (var ma of matches) {
+                    if (ma.matchCol > prevCol) {
+                        prevCol = ma.matchCol;
+                        newRoundList.push([]);
+                    }
+                    newRoundList[prevCol].push(ma);
+                }
+                setTourneyData((prev: any) => ({
+                    ...prev,
+                    roundList: newRoundList
+                }))
+            })
+
             setCanSignUp(location.state.canSignUp);
             
             return () => {
-                //socket.emit('disc', { tid: tid });
                 socket.disconnect();
             }
         }
@@ -97,7 +120,6 @@ export default function Tournament(props: any) {
             }
         });
         const jsonData = await response.json();
-        console.log(jsonData);
         
         setBracketNum(0); // hardcoded because we currently assume 1 bracket
 
@@ -116,9 +138,14 @@ export default function Tournament(props: any) {
                     }
                 }),
                 roundList: (jsonData.brackets[0]?.roundList || null),
-                winsNeeded: (jsonData.brackets[0]?.wins_needed_default || null)
+                winsNeeded: (jsonData.brackets[0]?.wins_needed_default || null),
+                status: (jsonData.brackets[0]?.status || null),
+                bracketId: (jsonData.brackets[0]?.bracket_id || null),
+                tournamentId: (jsonData.brackets[0]?.tournament_id.toString() || null)
             }
         });
+
+        socket.emit('joinRoom', jsonData.brackets[0]?.tournament_id.toString());
     }
 
     const handleReset = async () => {
@@ -168,14 +195,14 @@ export default function Tournament(props: any) {
         });
         const [newMatchJson, newPlJson] = await response.json();
         if (response.status == 200) {
-            socket.emit('matches updated', newMatchJson);
-            socket.emit('placements updated', newPlJson);
+            socket.emit('matches updated', [newMatchJson, tourneyData.tournamentId]);
+            socket.emit('placements updated', [newPlJson, tourneyData.tournamentId]);
         }
     }
 
     const handleStart = async () => {
         // assume bracket_type is single elim
-        if (1>2/*tourneyData.playerList.length > tourneyData.roundList.length*2*/) {
+        if (1 > 2) {
             console.log('too many players for this bracket');
         } else {
             let playerListWithByes = [...tourneyData.playerList];
@@ -192,32 +219,7 @@ export default function Tournament(props: any) {
                 playerListWithByes.push(newBye);
             }
             let seedOrder = createPlayerOrder(playerListWithByes.length);
-            let newMatches: any[] = [];
-
-            let mList = [];
-            for (let i=0;i<Math.log2(playerListWithByes.length);i++) {
-                for (let j=0;j<playerListWithByes.length/Math.pow(2,i);j+=2) {
-                    mList.push({
-                        p1: (i==0? playerListWithByes[seedOrder[j]-1] : null),
-                        p2: (i==0? playerListWithByes[seedOrder[j+1]-1] : null),
-                        winner: null,
-                        winsP1: 0,
-                        winsP2: 0,
-                        isBye: (i==0? (playerListWithByes[seedOrder[j]-1].tag == 'Bye' || playerListWithByes[seedOrder[j+1]-1].tag == 'Bye'? true : false) : false),
-                        winsNeeded: tourneyData.winsNeeded
-                    })
-                }
-            }
-            console.log('mlist:');
-            console.log(mList);
-
-            // notes @ end of 6/16
-            // double for-loop through numPlayers, divide by 2 each outer loop
-            // count by 2 each inner loop
-            // create a match object, populate round 1 with players like is already done
-            // send off to router.post('/create')
-
-
+            let newMatches = tourneyData.roundList[0];
 
             newMatches = newMatches.map((e: any, i: number): MatchObj => {
                 //console.log(!playerListWithByes[seedOrder[i*2]-1].player.isHuman || !playerListWithByes[seedOrder[i*2+1]-1].player.isHuman);
@@ -237,7 +239,7 @@ export default function Tournament(props: any) {
                     roundList: [newMatches, ...prev.roundList.slice(1)] // probably need to reset all matches and not just first row
                 }
             });
-
+            
             const response = await fetch(import.meta.env.VITE_API_URL+`matches/update`, {
                 method: 'POST',
                 credentials: 'include',
@@ -249,9 +251,57 @@ export default function Tournament(props: any) {
             });
             const [matchResp, plResp] = await response.json();
             if (response.status == 200) {
-                socket.emit('matches updated', matchResp);
-                socket.emit('placements updated', plResp);
+                socket.emit('matches updated', [matchResp, tourneyData.tournamentId]);
+                socket.emit('placements updated', [plResp, tourneyData.tournamentId]);
             }
+        }
+    }
+
+    const handleInit = async () => {
+        let mList = [];
+        for (let i=0;i<Math.log2(tourneyData.playerList.length);i++) {
+            for (let j=0;j<tourneyData.playerList.length/Math.pow(2,i);j+=2) {
+                mList.push({
+                    p1: null,
+                    p2: null,
+                    winner: null,
+                    winsP1: 0,
+                    winsP2: 0,
+                    isBye: false,
+                    winsNeeded: tourneyData.winsNeeded,
+                    matchCol: i,
+                    matchRow: j/2,
+                    bracketId: tourneyData.bracketId
+                })
+            }
+        }
+        
+        const response = await fetch(import.meta.env.VITE_API_URL+`matches/create`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'content-type': 'application/json'
+            }, body: JSON.stringify({
+                matches: mList
+            })
+        })
+        const matchResp = await response.json();
+        if (response.status == 200) {
+            socket.emit('match list created', [matchResp, tourneyData.tournamentId]);
+        }
+    }
+    
+    const handleClear = async () => {
+        const response = await fetch(import.meta.env.VITE_API_URL+`tournaments/clear/${tid}`, {
+            method: 'DELETE',
+            credentials: 'include',
+            headers: {
+                'content-type': 'application/json'
+            }
+        });
+
+        if (response.status == 200) {
+            socket.emit('matches cleared', (tourneyData.tournamentId));
         }
     }
 
@@ -276,7 +326,7 @@ export default function Tournament(props: any) {
                         });
                         const userJson = await response.json()
                         if (response.status == 200) {
-                            socket.emit('signup added', userJson);
+                            socket.emit('signup added', [userJson, tourneyData.tournamentId]);
                         }
                     } else {
                         const response = await fetch(import.meta.env.VITE_API_URL+`tournaments/${tid}/signup/${session.user.id}`, {
@@ -291,7 +341,7 @@ export default function Tournament(props: any) {
                             })
                         });
                         if (response.status == 200) {
-                            socket.emit('signup removed', session.user.id);
+                            socket.emit('signup removed', [session.user.id, tourneyData.tournamentId]);
                         }
                     }
                 }
@@ -431,8 +481,8 @@ export default function Tournament(props: any) {
         });
         const respJson = await response.json();
         if (response.status == 200) {
-            socket.emit('matches updated', respJson[0]);
-            socket.emit('placements updated', respJson[1]);
+            socket.emit('matches updated', [respJson[0], tourneyData.tournamentId]);
+            socket.emit('placements updated', [respJson[1], tourneyData.tournamentId]);
         }
 
         let newRoundList = tourneyData.roundList;
@@ -484,8 +534,16 @@ export default function Tournament(props: any) {
                 <>Register for the event to sign up for this tournament!</>
             }
             <div>
-                <Button onClick={handleStart}>Initialize Tournament</Button><Button onClick={handleReset}>Reset</Button>
+                <Button onClick={handleStart}>Start Tournament</Button><Button onClick={handleReset}>Reset</Button>
             </div>
+            {tourneyData && tourneyData.status == 'upcoming' && <div>
+                <Button onClick={handleInit}>Initialize Tournament</Button>
+            </div>}
+            {tourneyData && (tourneyData.status == 'in_progress' || 'finished' || 'ready') &&
+                <div>
+                    <Button onClick={handleClear}>Clear Tournament</Button>
+                </div>
+            }
             {tourneyData?
                 <SEBracket bracketData={tourneyData} setMatchResults={setMatchResults} />
                 :

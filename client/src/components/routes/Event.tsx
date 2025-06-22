@@ -193,6 +193,25 @@ export default function Event(props: any) {
         }
     }
 
+    const deleteTournament = async (tid: number) => {
+        try {
+            console.log(tournaments);
+            console.log(tid); 
+            const response = await fetch(import.meta.env.VITE_API_URL+`tournaments/${tid}`, {
+                method: 'DELETE',
+                credentials: 'include',
+                headers: {
+                    'content-type': 'application/json'
+                }
+            });
+            if (response.status == 200) {
+                setTournaments((prev: any) => (prev.filter((e: any, i: number) => e.tournament_id != tid)));
+            }
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
     return (
         <div className="p-3">
             {event?
@@ -219,7 +238,8 @@ export default function Event(props: any) {
                                     tournament={e}
                                     key={i}
                                     canSignUp={isRegistered}
-                                    isAdmin={event && session && event.event_creator == session.user.id ? true : false}/>
+                                    isAdmin={event && session && event.event_creator == session.user.id ? true : false}
+                                    deleteTournament={() => deleteTournament(e.tournament_id)}/>
                             );
                         })}
                     </ListGroup>

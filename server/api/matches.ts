@@ -7,7 +7,36 @@ import sql from '../db';
 
 router.post('/create', async (req: Request, res: Response) => {
     try {
-        
+        let vals: any = [];
+        for (var ma of req.body.matches) {
+            vals.push([
+                (ma.p1?.id? ma.p1.id : null),
+                (ma.p2?.id? ma.p2.id : null),
+                (ma.winner? ma.winner.id : null),
+                ma.winsP1,
+                ma.winsP2,
+                ma.isBye,
+                ma.winsNeeded,
+                ma.matchCol,
+                ma.matchRow,
+                ma.bracketId
+            ]);
+        }
+
+        const data = await sql`
+            INSERT INTO matches (p1_id, p2_id, winner_id, wins_p1, wins_p2, is_bye,
+                wins_needed, m_row, m_col, bracket_id)
+            VALUES ${sql(vals)}
+            RETURNING match_id`;
+
+        let returnMatches = req.body.matches.map((e: any, i: number) => {
+            delete e.bracketId;
+            return {
+            ...e,
+            matchId: data[i].match_id
+        }});
+
+        res.status(200).json(returnMatches);
     } catch (error) {
         console.log(error);
     }
@@ -26,6 +55,7 @@ router.post('/update', async (req: Request, res: Response) => {
                 ma.winsP2,
                 ma.isBye]);
         }
+        console.log(values);
         const data = await sql`
             UPDATE matches AS m
             SET

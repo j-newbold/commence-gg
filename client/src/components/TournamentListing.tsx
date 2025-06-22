@@ -17,7 +17,7 @@ export default function TournamentListing(props:any) {
             onClick={() => renderTournament(props.event.event_id, props.tournament.tournament_id, props.canSignUp)}>
                 {props.tournament.tournament_name}
             </div>
-            {props.isAdmin? <Button variant='danger'>Delete</Button> : <></>}
+            {props.isAdmin? <Button variant='danger' onClick={props.deleteTournament}>Delete</Button> : <></>}
         </ListGroup.Item>
     );
 }

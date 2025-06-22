@@ -58,6 +58,8 @@ create table public.t_entrants (
 
 create TYPE bracket_type as ENUM ('double_elim', 'single_elim', 'round_robin');
 
+create TYPE tournament_status as ENUM ('upcoming', 'ready', 'in_progress', 'finished');
+
 create table public.b_entrants (
     b_entrant_id SERIAL PRIMARY KEY,
 
