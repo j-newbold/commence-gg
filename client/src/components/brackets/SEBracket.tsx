@@ -6,125 +6,20 @@ import FinalsMatch from '../FinalsMatch.tsx';
 import Dropdown from 'react-bootstrap/Dropdown';
 import { sumBooleans } from '../../utils/misc.tsx';
 import { SingleBracket, MatchObj, Round, Player, RRPool, ElimBracket, FinalsMatchObj } from '../../utils/types.tsx';
+import { TourneyContext } from '../routes/Tournament.tsx';
+import { seSetMatchResults } from './single elim/seBracketFxns.tsx';
 
 const offset = 320;
 
-export default function SEBracket({bracketData, ...props}: {bracketData: SingleBracket;
-                                                            [key: string]: any;
-}) {
-    const [bracketStruct, setBracketStruct] = useState<SingleBracket>(bracketData);
-
-    useEffect(() => {
-        setBracketStruct(bracketData);
-    }, [bracketData])
+export default function SEBracket(props: any) {
+    const tourneyState: {
+        tourneyData: SingleBracket,
+        setTourneyData: any
+    } = useContext(TourneyContext);
 
     function setResult() {
 
     }
-
-/*     function setPlayerAndWinner (isP1: boolean, playerParam: Player, bInd: number, rInd: number, mInd: number): void{
-        setBracketStruct((prevBracketStruct) => ({ bracketList: prevBracketStruct.bracketList.map((br, ind1) => {
-            if (bInd == ind1) {
-                if (rInd == -1 && mInd == -1 && br.finals) {
-                    if (isP1) {
-                        return {...br, finals: {...br.finals, p1:playerParam, winner:playerParam}};
-                    } else {
-                        return {...br, finals: {...br.finals, p2:playerParam, winner:playerParam}};
-                    }
-                } else {
-                    return {
-                        ...br, roundList: br.roundList.map((rd, index) => {
-                            if (rInd == index) {
-                                return { ...rd, matchList: rd.matchList.map((ma, ind) => {
-                                    if (mInd == ind) {
-                                        if (isP1) {
-                                            return { ...ma, p1:playerParam, winner:playerParam }
-                                        } else {
-                                            return { ...ma, p2:playerParam, winner:playerParam }
-                                        }
-                                    } else {
-                                        return ma;
-                                    }
-                                })};
-                            } else {
-                                return rd;
-                            }
-                        })
-                    }
-                }
-
-            } else {
-                return br;
-            }
-        })}));
-    }
-
-    function setPlayer (isP1: boolean, playerParam: Player, bInd: number, rInd: number, mInd: number): void{
-        setBracketStruct((prevBracketStruct) => ({ bracketList: prevBracketStruct.bracketList.map((br, ind1) => {
-            if (bInd == ind1) {
-                if (rInd == -1 && mInd == -1 && br.finals) {
-                    if (isP1) {
-                        return {...br, finals: {...br.finals, p1:playerParam}};
-                    } else {
-                        return {...br, finals: {...br.finals, p2:playerParam}};
-                    }
-                } else {
-                    return {
-                        ...br, roundList: br.roundList.map((rd, index) => {
-                            if (rInd == index) {
-                                return { ...rd, matchList: rd.matchList.map((ma, ind) => {
-                                    if (mInd == ind) {
-                                        if (isP1) {
-                                            return { ...ma, p1:playerParam }
-                                    } else {
-                                        return { ...ma, p2:playerParam }
-                                    }
-                            } else {
-                                return ma;
-                            }
-                        })};
-                    } else {
-                        return rd;
-                    }
-                        })
-                    }                    
-                }
-
-            } else {
-                return br;
-            }
-            })
-        }))} */
-    
-/*     function setMatchResult (winner: Player, loser: Player, bInd: number, rInd: number, mInd: number): void {
-        setBracketStruct((prevBracketStruct) => ({ bracketList: prevBracketStruct.bracketList.map((br, ind1) => {
-            if (bInd == ind1) {
-                if (rInd == -1 && mInd == -1 && br.finals) {
-                    return {...br, finals: {...br.finals, winner:winner, loser:loser}};
-                } else {
-                    return {
-                        ...br, roundList: br.roundList.map((rd, index) => {
-                            if (rInd == index) {
-                                return { ...rd, matchList: rd.matchList.map((ma, ind) => {
-                                    if (mInd == ind) {
-                                        return { ...ma, winner:winner, loser:loser }
-                                    } else {
-                                        return ma;
-                                    }
-                                })};
-                            } else {
-                                return rd;
-                            }
-                        })
-                    }                    
-                }
-
-            } else {
-                return br;
-            }
-            })
-        }))
-    } */
 
     return (
                 <div className="bracket"
@@ -132,7 +27,7 @@ export default function SEBracket({bracketData, ...props}: {bracketData: SingleB
                         top: String(offset)+'px',
                         position: 'absolute'
                 }}>
-                    {bracketData?.roundList?.map((rd, rIndex) => (
+                    {tourneyState.tourneyData?.roundList?.map((rd: any, rIndex: number) => (
                     <div className='round' key={String(rIndex)}
                         style={{
                             position: 'absolute',
@@ -161,7 +56,7 @@ export default function SEBracket({bracketData, ...props}: {bracketData: SingleB
                                 //setPlayer={setPlayer}
                                 //setPlayerAndWinner={setPlayerAndWinner}
                                 p2SetWinsNeeded={1}
-                                setMatchResults={props.setMatchResults}
+                                setMatchResults={seSetMatchResults}
                             />
                         ))}
                     </div>

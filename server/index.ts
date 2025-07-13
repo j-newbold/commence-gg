@@ -29,6 +29,8 @@ const matchRouter = require('./api/matches.ts');
 app.use('/matches', matchRouter);
 const entrantRouter = require('./api/entrants.ts');
 app.use('/entrants', entrantRouter);
+const profileRouter = require('./api/profiles.ts');
+app.use('/profiles', profileRouter);
 
 app.get('/', (req: Request, res: Response) => {
     const response = { msg: "response from server: ok!"};
@@ -76,6 +78,10 @@ io.on('connection', async (socket) => {
 
     socket.on('match list created', async ([matchData, id]) => {
         io.to(id).emit('match list created', matchData);
+    })
+
+    socket.on('tourney status updated', async ([newStatus, id]) => {
+        io.to(id).emit('tourney status updated', newStatus);
     })
 
     //handleTournamentSockets(socket);

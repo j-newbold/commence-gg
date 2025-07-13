@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const { supabase } = require("../utils/supabaseClient");
 import { Request, Response } from 'express';
-import { Socket } from 'socket.io';
 
 import sql from '../db';
 
@@ -15,7 +14,7 @@ router.post('/create', async (req: Request, res: Response) => {
             
         const bData = await sql`INSERT INTO brackets
             (tournament_id, b_type, wins_needed_default)
-            VALUES (${data[0].tournament_id}, ${req.body.type}, ${req.body.winsNeeded},)
+            VALUES (${data[0].tournament_id}, ${req.body.type}, ${req.body.winsNeeded})
             RETURNING b_type, wins_needed_default`;
 
         const respData = 
@@ -30,6 +29,18 @@ router.post('/create', async (req: Request, res: Response) => {
         console.log(error);
     }
 })
+
+/* router.post('/:id/setStatus', async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        await sql`UPDATE tournaments
+            SET status = ${req.body.newStatus}
+            WHERE tournament_id = ${id}`;
+    } catch (error) {
+        console.log(error);
+    }
+}) */
 
 router.post('/:id/resetStandings', async (req: Request, res: Response) => {
     try {

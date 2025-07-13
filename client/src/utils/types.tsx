@@ -14,8 +14,6 @@ export type MatchObj = {
     // match at [number, number, number]
     // feeds into MatchObj (true) or loser (false)
     // final number is "set wins to advance"
-    p1Input?: [number, number, number, boolean] | null;
-    p2Input?: [number, number, number, boolean] | null;
     p2SetWinsNeeded?: number;
     matchId: number;
     winsNeeded?: number;    // need to add game wins
@@ -38,7 +36,7 @@ export type Round = {
 }
 
 export type SingleBracket = {
-    roundList: Round[][];
+    roundList: MatchObj[][];
 
     playerList?: Entrant[]
 
@@ -50,6 +48,8 @@ export type SingleBracket = {
 
     bracketId: number | null;
     tournamentId?: string | null;
+
+    type?: string;
 }
 
 export type Entrant = {

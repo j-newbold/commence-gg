@@ -58,7 +58,7 @@ function App() {
         setBracketType(event);
     };
 
-    const createBracket = () => {
+    /*const createBracket = () => {
         if (bracketType == 'Single Elimination') {
             const initialData: ElimBracket = createElimBracket(numPlayers, 1);
             setBracketComponent(<SEBracket bracketData={initialData}/>);
@@ -73,7 +73,7 @@ function App() {
             } else {
                 setBracketComponent(<div>error: enter number of elimination losses!</div>)
             }
-        } */ else if (bracketType == 'Round Robin') {
+        } comment_ends_here else if (bracketType == 'Round Robin') {
             const initialData: RRPool = createRRPool(numPlayers);
             setBracketComponent(<RRPoolComponent bracketData={initialData}/>);
         } else {
@@ -81,13 +81,13 @@ function App() {
         }
 
         return (<div>No bracket to display</div>);
-    }
+    } */
 
     return (
         <>
             <Navbar>
                     <Nav className='top-nav'>
-                        <Nav.Link className='top-nav-link left-link' as={Link} to='/'><div className=''>Home</div></Nav.Link>
+                        <Nav.Link className='top-nav-link left-link' as={Link} to='/'>Commence.GG</Nav.Link>
                         {session?
                             <>
                                 <Nav.Link className='top-nav-link right-link' as={Link} to='/createEvent'>Create Event</Nav.Link>
@@ -100,7 +100,6 @@ function App() {
             <div className='main-container'>
                 <Outlet />
             </div>
-            <div>app says {session? <>logged in</> : <>logged out</>}</div>
 {/*             <Button onClick={onSubmitForm}>Debug</Button>
             <input type="number" value={numPlayers}
                 onChange={e => setNumPlayers(parseInt(e.target.value))}/>

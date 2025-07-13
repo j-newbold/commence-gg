@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState, useRef } from "react";
 import { MatchObj } from '../utils/types';
 import { Modal, Button } from "react-bootstrap";
+import MatchModal from "./brackets/MatchModal.tsx";
 
 export default function Match(props: any) {
     // p1Win is a boolean, p2Win is an array of booleans
@@ -22,11 +23,7 @@ export default function Match(props: any) {
         setTempWinsP2(props.matchProp.winsP2);
     }, [props.matchProp])
 
-    const handleModal = (bool: boolean) => {
-        setShowModal(bool);
-    }
-
-    const handleSubmitMatchChange = () => {
+/*     const handleSubmitMatchChange = () => {
         if (tempWinsP1 == tempWinsP2 && tempWinsP1 == curMatch.winsNeeded) {
             // handle error
         } else if (tempWinsP1 != Math.round(tempWinsP1) || tempWinsP2 != Math.round(tempWinsP2)) {
@@ -86,7 +83,7 @@ export default function Match(props: any) {
         } else {
             // handle error--number too large
         }
-    }
+    } */
 
 /*     useEffect(() => {
         if (didMountP2SetWins.current < 1) {
@@ -182,20 +179,9 @@ export default function Match(props: any) {
         }
     } */
 
-    // probably not necessary
-    const parseGameWinInput = (num: number) => {
-        if (num > curMatch.winsNeeded) {
-            return curMatch.winsNeeded;
-        } else if (num < 0) {
-            return 0;
-        } else {
-            return Math.round(num);
-        }
-    }
-
     return (
         <>
-            <div style={props.style} className="match-holder" onClick={() => handleModal(true)} >
+            <div style={props.style} className="match-holder" onClick={() => setShowModal(true)} >
                 <div className="match-player-text match-player-holder-top">
                     <div className="match-player-name">{curMatch?.p1?.tag || (curMatch.isBye? 'Bye' : 'Player 1')}</div>
                     <div className="match-game-wins">{curMatch?.winsP1}</div>
@@ -206,42 +192,12 @@ export default function Match(props: any) {
                     <div className="match-game-wins">{curMatch?.winsP2}</div>
                 </div>
             </div>
-            <Modal show={showModal} onHide={(() => handleModal(false))}>
-                <Modal.Header>
-                    <Modal.Title>{curMatch?.isBye.toString()}</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    <div className="match-modal">
-                        <div className="match-popup">
-                            <div className="match-popup-player-name">{curMatch?.p1?.tag || (curMatch.isBye? 'Bye' : 'Player 1')}</div>
-                            <input
-                                className="game-wins"
-                                type='number'
-                                value={tempWinsP1}
-                                onChange={e => setTempWinsP1(Number(e.target.value))}
-                            />
-                        </div>
-                        <div className="versus">vs</div>
-                        <div className="match-popup">
-                            <div className="match-popup-player-name">{curMatch?.p2?.tag || (curMatch.isBye? 'Bye' : 'Player 2')}</div>
-                            <input
-                                className="game-wins"
-                                type='number'
-                                value={tempWinsP2}
-                                onChange={e => setTempWinsP2(Number(e.target.value))}
-                            />
-                        </div>
-                    </div>
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button variant='primary' onClick={handleSubmitMatchChange}>
-                        Submit
-                    </Button>
-                    <Button variant='danger' onClick={() => handleModal(false)}>
-                        Cancel
-                    </Button>
-                </Modal.Footer>
-            </Modal>
+            <MatchModal
+                showModal={showModal}
+                setShowModal={setShowModal}
+                curMatch={curMatch}
+                setMatchResults={props.setMatchResults}
+            />
         </>
     );
 }

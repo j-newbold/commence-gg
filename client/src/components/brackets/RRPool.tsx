@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { RRPool, RRMatchObj } from "../../utils/types";
-import EmptyRRMatch from "../EmptyRRMatch";
+import EmptyRRMatch from "./round robin/EmptyRRMatch";
 import RRMatch from "../RRMatch";
 import '../../index.css';
 import Button from "react-bootstrap/Button";
@@ -130,7 +130,7 @@ export default function RRPoolComponent({bracketData}: {bracketData: RRPool}) {
     return (
         <div className="tourney-holder">
                 {/* <Button onClick={() => { console.log(poolStruct.placements)}}>Debug</Button> */}
-                <table className="rr-pool-holder">
+                <table className="rr-bracket-holder">
                     <tbody> 
                         <tr>
                             <td className="rr-name-holder"></td>

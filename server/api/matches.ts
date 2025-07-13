@@ -55,7 +55,6 @@ router.post('/update', async (req: Request, res: Response) => {
                 ma.winsP2,
                 ma.isBye]);
         }
-        console.log(values);
         const data = await sql`
             UPDATE matches AS m
             SET
@@ -84,6 +83,13 @@ router.post('/update', async (req: Request, res: Response) => {
                     VALUES ${sql(plVals)}
                 ) AS tentData(id, placement)
                 WHERE (tentData.id)::uuid = tent.user_id`;
+        }
+
+        if (req.body?.newStatus && req.body?.tid) {
+            const data3 = await sql`
+            UPDATE tournaments
+            SET status = ${req.body.newStatus}
+            WHERE tournament_id = ${req.body.tid}`;
         }
 
         res.status(200).json([req.body?.matches, req.body?.placements]);

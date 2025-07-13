@@ -4,11 +4,11 @@
 
 @layer components {
     .top-nav {
-        @apply w-full flex content-start;
+        @apply w-full flex content-start justify-between;
     }
 
     .top-nav-link {
-        @apply hover:rounded-lg hover:bg-gray-500 hover:text-gray-200 text-black
+        @apply rounded-lg hover:bg-gray-500 hover:text-gray-200 text-black
             align-middle justify-items-center;
     }
 
@@ -32,13 +32,26 @@
 
     .main-panel {
         @apply w-3/4 border border-gray-200 rounded-md shadow-md
-            h-screen;
+            h-screen justify-items-center;
     }
 
     .main-container {
-        @apply flex flex-row;
+        @apply flex flex-row justify-around;
+    }
+
+    .profile-page {
+        @apply m-3
+    }
+
+    .profile-header {
+        @apply text-3xl
     }
     
+}
+
+.btn {
+    padding: 0 5px 1px 5px;
+    text-align: center;
 }
 
 :root {
@@ -76,11 +89,10 @@
 }
 
 .rr-match-holder {
-    width: 90px;
-    height: 45px;
     border: gray 2px solid;
-    margin: auto;
     text-align: center;
+    line-height: 42px;
+    margin-left: 4px;
 }
 
 .rr-match-holder:hover {
@@ -91,12 +103,43 @@
     background-color: #c5c5c5;
 }
 
-.rr-pool-holder {
-    border-spacing: 3px;
+.rr-bracket-holder {
     border-collapse: separate;
+    position: absolute;
 }
 
-.rr-name-holder {
+.rr-hor-label {
+    height: 45px;
+    display: inline-block;
+    width: 90px;
+    margin-left: 4px;
+}
+
+.rr-placement {
+    text-align: center;
+}
+
+.rr-header-row {
+    text-align: center;
+    display: block;
+    margin-bottom: 12px;
+}
+
+.rr-vert-label {
+    line-height: 42px;
+}
+
+.rr-cell {
+    display: inline-block;
+    width: 90px;
+    height: 45px;
+    text-align: center;
+    align-items: center;
+}
+
+.rr-row {
+    display: block;
+    margin-top: 4px;
     height: 45px;
 }
 
@@ -123,8 +166,6 @@
     cursor: pointer;
 }
 
-.match-popup-player-name {
-}
 .game-wins{
     border: none;
     text-align: center;
@@ -210,7 +251,8 @@ body {
 }
 
 .tourney-holder {
-    position: relative;
+    position: static;
+    background-color: green;
 }
 
 h1 {
@@ -268,4 +310,13 @@ button:focus-visible {
     text-align: center;
     margin-left:auto;
     margin-right: auto;
+}
+
+.login-route {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.home {
+    justify-content: center;
 }

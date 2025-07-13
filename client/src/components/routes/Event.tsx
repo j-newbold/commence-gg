@@ -312,7 +312,7 @@ export default function Event(props: any) {
                                             type: e.target.value
                                         })}>
                                         <option value='single_elim'>Single Elimination</option>
-                                        <option value='single_elim'>Option 2</option>
+                                        <option value='round_robin'>Round Robin</option>
                                     </Form.Select>
                                 </Form.Group>
 
