@@ -123,6 +123,7 @@ export default function Tournament(props: any) {
 
     useEffect(() => {
         tourneyDataRef.current = tourneyData;
+        console.log('effect td:');
         console.log(tourneyData);
         if (session && tourneyData?.playerList) {
             setIsSignedUp(tourneyData.playerList.some((e:any) => {
@@ -275,13 +276,13 @@ export default function Tournament(props: any) {
                 {tourneyData?.playerList?
                     <div>Standings:
                         {/* will need to sort this list*/}
-                        {tourneyData.playerList.sort((a: any, b: any) => {
+                        {tourneyData.playerList.slice().sort((a: any, b: any) => {
                             return (a.placement - b.placement)
                         }).map((e: any, i: number) => {
                             return (
-                                e.placement?
+                                e.placement !== null?
                                     <div key={i}>
-                                        {e.placement}{'. '}{e.player.tag}
+                                        {e.placement+1}{'. '}{e.player.tag}
                                     </div>
                                     :
                                     <span key={i}></span>

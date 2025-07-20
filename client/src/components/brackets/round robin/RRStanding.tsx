@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { RRMatchObj } from "../../../utils/types";
+import { RRMatchObj, Result } from "../../../utils/types";
 import '../../../index.css';
-import { Result } from "./RRBracket";
 
 export default function RRStanding({resultObj}: {resultObj: Result}) {
 

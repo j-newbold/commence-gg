@@ -1,20 +1,13 @@
 import React, { useEffect, useState, useContext } from "react";
-import { SingleBracket } from "../../../utils/types";
+import { SingleBracket, Result } from "../../../utils/types";
 import RRStanding from "./RRStanding.tsx";
 import EmptyRRMatch from "./EmptyRRMatch.tsx";
 import RRMatch from "./RRMatch.tsx";
 import '../../../index.css';
 import Button from "react-bootstrap/Button";
 import Container from 'react-bootstrap/Container';
-import { rrSetMatchResults } from "./rrBracketFxns.tsx";
+import { rrSetMatchResults, rrCalcResults } from "./rrBracketFxns.tsx";
 import { TourneyContext } from "../../routes/Tournament.tsx";
-
-export type Result = {
-    gw: number,
-    gl: number,
-    mw: number,
-    ml: number
-}
 
 export default function RRBracket(props: any) {
 
@@ -33,21 +26,8 @@ export default function RRBracket(props: any) {
     );
 
     useEffect(() => {
-        setResultsList(resultsList.map((e: any, i: number) => {
-            for (let j=0;j<resultsList.length;j++) {
-                if (j != i) {
-                    
-                }
-            }
-            const singleResult: Result = 
-            return {
-                gw: 0,
-                gl: 0,
-                mw: 0,
-                ml: 0
-            }
-        }))
-    }, [tourneyState.tourneyData.roundList])
+        setResultsList(rrCalcResults(tourneyState.tourneyData));
+    }, [tourneyState.tourneyData])
 
     const doNothing = () => {
         
@@ -93,7 +73,7 @@ export default function RRBracket(props: any) {
                         <RRStanding
                             resultObj={resultsList[i]}
                         />
-                        <div className="rr-placement rr-cell">{'-'/*poolstruct.placements[i] &&*/}</div>
+                        <div className="rr-placement rr-cell">{tourneyState.tourneyData.playerList[i].placement === null ? '-' : tourneyState.tourneyData.playerList[i].placement+1}</div>
                     </div>
                 ))}
             </div>

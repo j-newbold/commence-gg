@@ -49,7 +49,7 @@ router.post('/update', async (req: Request, res: Response) => {
         for (var ma of req.body.matches) {
             values.push([(ma.p1?.id? ma.p1.id : null),
                 (ma.p2?.id? ma.p2.id : null),
-                (ma.winner? ma.winner.id : null),
+                (ma.winner? ma.winner : null),
                 ma.matchId,
                 ma.winsP1,
                 ma.winsP2,

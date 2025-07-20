@@ -21,21 +21,16 @@ export default function RRMatch({matchInfo, col, row, setMatchResults, canClick}
 
     const [submitError, setSubmitError] = useState('');
 
-    const [p1GamesWonModal, setP1GamesWonModal] = useState(matchInfo.winsP1);
-    const [p2GamesWonModal, setP2GamesWonModal] = useState(matchInfo.winsP2);
-
     useEffect(() => {
         setCurMatch(matchInfo);
     }, [matchInfo])
 
     useEffect(() => {
         setP1GamesWon(matchInfo.winsP1);
-        setP1GamesWonModal(matchInfo.winsP1);
     }, [matchInfo.winsP1])
 
     useEffect(() => {
         setP2GamesWon(matchInfo.winsP2);
-        setP2GamesWonModal(matchInfo.winsP2);
     }, [matchInfo.winsP2])
     
     const handleShow = () => {
@@ -43,18 +38,8 @@ export default function RRMatch({matchInfo, col, row, setMatchResults, canClick}
     }
 
     const handleClose = () => {
-        setP1GamesWonModal(p1GamesWon);
-        setP2GamesWonModal(p2GamesWon);
         setSubmitError('');
         setShowModal(false);
-    }
-
-    const handleP1GameChange = (e: any) => {
-        setP1GamesWonModal(e.target.value);
-    }
-
-    const handleP2GameChange = (e: any) => {
-        setP2GamesWonModal(e.target.value);
     }
     
     return (

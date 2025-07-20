@@ -52,7 +52,7 @@ export default function RRPoolComponent({bracketData}: {bracketData: RRPool}) {
         let bigList: [string, ...number[]][] = newPool.playerList.map((e, index) => {
             return [newPool.playerList[index].name, ...newPool.resultsList[index]]
         });
-         bigList.sort(function(a, b): any {
+        bigList.sort(function(a, b): any {
             if (a[1] !== b[1]) {
                 return b[1]-a[1];
             }

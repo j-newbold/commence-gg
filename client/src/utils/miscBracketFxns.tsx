@@ -78,13 +78,13 @@ export function handleSubmitMatchChange (
                 ...curMatch,
                 winsP1: tempWinsP1,
                 winsP2: tempWinsP2,
-                winner: curMatch.p1  // unsure if this creates a copy or a reference
+                winner: curMatch.p1.id  // unsure if this creates a copy or a reference
             });
             setMatchResults(curMatch.matchRow,
                 curMatch.matchCol,
                 tempWinsP1,
                 tempWinsP2,
-                curMatch.p1,
+                curMatch.p1.id,
                 null,
                 null,
                 tourneyData,
@@ -96,13 +96,13 @@ export function handleSubmitMatchChange (
                 ...curMatch,
                 winsP1: tempWinsP1,
                 winsP2: tempWinsP2,
-                winner: curMatch.p2  // unsure if this creates a copy or a reference
+                winner: curMatch.p2.id  // unsure if this creates a copy or a reference
             });
             setMatchResults(curMatch.matchRow,
                 curMatch.matchCol,
                 tempWinsP1,
                 tempWinsP2,
-                curMatch.p2,
+                curMatch.p2.id,
                 null,
                 null,
                 tourneyData,

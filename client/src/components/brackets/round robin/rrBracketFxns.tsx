@@ -1,6 +1,35 @@
 import { Socket } from 'socket.io-client';
-import { Player, SingleBracket, MatchObj, Entrant } from '../../../utils/types';
+import { Player, SingleBracket, MatchObj, Entrant, Result } from '../../../utils/types';
 import { createPlayerOrder } from '../../../utils/misc';
+
+export const rrCalcResults = (tourneyData: SingleBracket) => {
+    let resultsList: Result[] = tourneyData.playerList.map((e: any, i: number) => {
+        let singleResult: Result = {
+            gw: 0,
+            gl: 0,
+            mw: 0,
+            ml: 0
+        };
+        for (let j=i;j<tourneyData.playerList.length;j++) {
+            if (j != i) {
+                singleResult.gw += (tourneyData.roundList[i][j-i-1].winsP1 || 0);
+                singleResult.gl += (tourneyData.roundList[i][j-i-1].winsP2 || 0);
+                singleResult.mw += ((tourneyData.roundList[i][j-i-1].winner == tourneyData.playerList[i].player.id)? 1 : 0);
+                singleResult.ml += ((tourneyData.roundList[i][j-i-1].winner && tourneyData.roundList[i][j-i-1].winner != tourneyData.playerList[i].player.id)? 1 : 0);
+            }
+        }
+        for (let j=i;j>=0;j--) {
+            if (j != i) {
+                singleResult.gw += (tourneyData.roundList[j][i-j-1].winsP2 || 0);
+                singleResult.gl += (tourneyData.roundList[j][i-j-1].winsP1 || 0);
+                singleResult.mw += (tourneyData.roundList[j][i-j-1].winner == tourneyData.playerList[i].player.id? 1 : 0);
+                singleResult.ml += ((tourneyData.roundList[j][i-j-1].winner && tourneyData.roundList[j][i-j-1].winner != tourneyData.playerList[i].player.id)? 1 : 0);
+            }
+        }
+        return singleResult;
+    })
+    return resultsList;
+}
 
 export const rrHandleInit = async (tourneyData: any, socket: Socket) => {
     let mList = [];
@@ -40,14 +69,14 @@ export const rrSetMatchResults: any = async (matchRow: number,
     matchCol: number,
     winsForP1: number,
     winsForP2: number,
-    winner: Player | null,
+    winner: string | null,
     newP1: Player | null,
     newP2: Player | null,
     tourneyData: any,
     setTourneyData: any,
     socket: Socket) => {
 
-    let newTourneyData = tourneyData;
+    let newTourneyData = {...tourneyData};
     newTourneyData.roundList[matchCol][matchRow] = {
         ...newTourneyData.roundList[matchCol][matchRow],
         winsP1: winsForP1,
@@ -55,7 +84,7 @@ export const rrSetMatchResults: any = async (matchRow: number,
         winner: winner,
         
     }
-    setTourneyData(newTourneyData);
+
 
     let isFinished = true;
     for (let i=0;i<newTourneyData.roundList.length;i++) {
@@ -69,7 +98,54 @@ export const rrSetMatchResults: any = async (matchRow: number,
             break;
         }
     }
-    console.log(isFinished);    // need to create standings etc once this is confirmed to work
+    
+    if (isFinished) {
+        console.log('creating placements...');
+        let results = rrCalcResults(newTourneyData);
+        let playerStandingList: any[] = newTourneyData.playerList.map((e: Entrant, i: number) => {
+            return {
+                ...e,
+                results: results[i],
+                seed: i+1
+            }
+        });
+        
+        playerStandingList.sort(function(a, b): any {
+            if (a.results.mw !== b.results.mw) {
+                return b.results.mw-a.results.mw;
+            } else if (a.results.gw !== b.results.gw) {
+                return b.results.gw-a.results.gw;
+            } else {
+                // eventually will need to create a tiebreaker system here
+                return a.seed-b.seed;
+            }
+        })
+/*         let newPlayerList = Array(newTourneyData.playerList.length).fill(null);
+        playerStandingList.map((e: any, i: number) => {
+            newPlayerList[e.seed] = {...newTourneyData.playerList[e.seed]};
+            newPlayerList[e.seed].placement = i;
+        }); */
+        console.log('before:',JSON.stringify(newTourneyData.playerList));
+        for (let i=0;i<playerStandingList.length;i++) {
+            console.log('setting placement to',i,'on item',playerStandingList[i].seed);
+            newTourneyData.playerList[playerStandingList[i].seed-1].placement = i;
+        }
+        console.log('after:',JSON.stringify(newTourneyData.playerList));
+/*         setTourneyData((prev: SingleBracket): SingleBracket => {
+            return {
+                ...newTourneyData,
+                playerList: newPlayerList
+            }
+        }) */
+    } else {/* 
+        setTourneyData((prev: SingleBracket): SingleBracket => {
+            return newTourneyData;
+        }); */
+    }
+    
+    setTourneyData((prev: SingleBracket): SingleBracket => {
+        return newTourneyData;
+    });
 
     const response = await fetch(import.meta.env.VITE_API_URL+`matches/update`, {
         method: 'POST',
@@ -103,8 +179,8 @@ export const rrHandleStart = async (tourneyData: any, setTourneyData: any, socke
     setTourneyData((prev: SingleBracket): SingleBracket => {
         return {
             ...prev,
-                playerList: prev.playerList?.map((e: any, i: number) => ({...e, placement: null})),
-                roundList: newRoundList
+            playerList: prev.playerList?.map((e: any, i: number) => ({...e, placement: null})),
+            roundList: newRoundList
         }
     })
 

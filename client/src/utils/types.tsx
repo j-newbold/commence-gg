@@ -5,10 +5,17 @@ export type Player = {
     id?: string;
 }
 
+export type Result = {
+    gw: number,
+    gl: number,
+    mw: number,
+    ml: number
+}
+
 export type MatchObj = {
     p1?: Player | null;
     p2?: Player | null;
-    winner: Player | null;
+    winner: string | null;
     loser?: Player | null;
     // the boolean denotes whether or not winner of
     // match at [number, number, number]
@@ -38,7 +45,7 @@ export type Round = {
 export type SingleBracket = {
     roundList: MatchObj[][];
 
-    playerList?: Entrant[]
+    playerList: Entrant[]
 
     finals?: MatchObj | null;
 
