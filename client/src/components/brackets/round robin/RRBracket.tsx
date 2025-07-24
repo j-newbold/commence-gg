@@ -26,6 +26,7 @@ export default function RRBracket(props: any) {
     );
 
     useEffect(() => {
+        //if (tourneyState.tourneyData.roundList)
         setResultsList(rrCalcResults(tourneyState.tourneyData));
     }, [tourneyState.tourneyData])
 
