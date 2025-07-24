@@ -34,7 +34,7 @@ export default function RRBracket(props: any) {
     }
 
     return (
-        tourneyState.tourneyData.roundList.length > 0 && <div className="tourney-holder">
+        tourneyState.tourneyData.roundList?.length > 0 && <div className="tourney-holder">
             <div className="rr-bracket-holder">
                 <div className="rr-header-row rr-row">
                     <div className="rr-cell">{}</div>

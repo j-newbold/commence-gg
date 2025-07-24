@@ -3,6 +3,8 @@ import { Player, SingleBracket, MatchObj, Entrant, Result } from '../../../utils
 import { createPlayerOrder } from '../../../utils/misc';
 
 export const rrCalcResults = (tourneyData: SingleBracket) => {
+    if (tourneyData.roundList == null) return null
+    
     let resultsList: Result[] = tourneyData.playerList.map((e: any, i: number) => {
         let singleResult: Result = {
             gw: 0,
@@ -100,7 +102,6 @@ export const rrSetMatchResults: any = async (matchRow: number,
     }
     
     if (isFinished) {
-        console.log('creating placements...');
         let results = rrCalcResults(newTourneyData);
         let playerStandingList: any[] = newTourneyData.playerList.map((e: Entrant, i: number) => {
             return {
@@ -120,17 +121,10 @@ export const rrSetMatchResults: any = async (matchRow: number,
                 return a.seed-b.seed;
             }
         })
-/*         let newPlayerList = Array(newTourneyData.playerList.length).fill(null);
-        playerStandingList.map((e: any, i: number) => {
-            newPlayerList[e.seed] = {...newTourneyData.playerList[e.seed]};
-            newPlayerList[e.seed].placement = i;
-        }); */
-        console.log('before:',JSON.stringify(newTourneyData.playerList));
+        
         for (let i=0;i<playerStandingList.length;i++) {
-            console.log('setting placement to',i,'on item',playerStandingList[i].seed);
             newTourneyData.playerList[playerStandingList[i].seed-1].placement = i;
         }
-        console.log('after:',JSON.stringify(newTourneyData.playerList));
 /*         setTourneyData((prev: SingleBracket): SingleBracket => {
             return {
                 ...newTourneyData,
@@ -153,12 +147,14 @@ export const rrSetMatchResults: any = async (matchRow: number,
         headers: {
             'content-type': 'application/json'
         }, body: JSON.stringify({
-            matches: [newTourneyData.roundList[matchCol][matchRow]]
+            matches: [newTourneyData.roundList[matchCol][matchRow]],
+            ...(isFinished && {placements: newTourneyData.playerList})
         })
     });
     const respJson = await response.json();
     if (response.status == 200) {
         socket.emit('matches updated', [respJson[0], tourneyData.tournamentId]);
+        if (respJson[1]) socket.emit('placements updated', [respJson[1], tourneyData.tournamentId])
     }
 }
 
