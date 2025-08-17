@@ -313,6 +313,7 @@ export default function Event(props: any) {
                                         })}>
                                         <option value='single_elim'>Single Elimination</option>
                                         <option value='round_robin'>Round Robin</option>
+                                        <option value='double_elim'>Double Elimination</option>
                                     </Form.Select>
                                 </Form.Group>
 

@@ -1,6 +1,7 @@
 import { Socket } from 'socket.io-client';
 import { Player, SingleBracket, MatchObj, Entrant } from '../../../utils/types';
 import { createPlayerOrder } from '../../../utils/misc';
+import { Placeholder } from 'react-bootstrap';
 
 
 export const seHandleInit = async (tourneyData: any, socket: Socket) => {
@@ -41,7 +42,7 @@ const setMatchRecursive: any = (matchCol: number,
     matchRow: number,
     winsForP1: number,
     winsForP2: number,
-    winner: Player | null,
+    setWinnerAs: Player | null,
     newP1: Player | null,
     newP2: Player | null,
     tourneyData: any) => {
@@ -52,7 +53,7 @@ const setMatchRecursive: any = (matchCol: number,
     
     let placementArr = [];
     // build array of placements
-    if (!winner) {
+    if (!setWinnerAs) {
         // may create duplicates
         if (curP1) {
             placementArr.push({
@@ -67,70 +68,66 @@ const setMatchRecursive: any = (matchCol: number,
             });
         }
     } else {
-        if (curP1?.id == winner.id) {
-            if (matchCol == tourneyData.roundList.length-1) {
-                placementArr.push({
-                    player: curP1,
-                    placement: 1
-                },{
-                    player: curP2,
-                    placement: 2
-                })
-            } else {
-                placementArr.push({
-                    player: curP2,
-                    placement: (Math.pow(2, Math.ceil(Math.log(tourneyData.playerList.length)/Math.log(2)))/Math.pow(2,(matchCol+1)))+1
-                })
-            }
-        } else if (curP2?.id == winner.id) {
-            if (matchCol == tourneyData.roundList.length-1) {
-                placementArr.push({
-                    player: curP2,
-                    placement: 1
-                },{
-                    player: curP1,
-                    placement: 2
-                })
-            } else {
-                placementArr.push({
-                    player: curP1,
-                    placement: (Math.pow(2, Math.ceil(Math.log(tourneyData.playerList.length)/Math.log(2)))/Math.pow(2,(matchCol+1)))+1
-                })
-            }
+        if (curP1?.id == setWinnerAs.id) {
+            placementArr.push(...addToPlacements(matchCol,curP1,curP2,tourneyData.playerList.length));
+        } else if (curP2?.id == setWinnerAs.id) {
+            placementArr.push(...addToPlacements(matchCol,curP2,curP1,tourneyData.playerList.length));
         }
     }
     
+    // base case
     if (matchCol == tourneyData.roundList.length-1 ||
-        (isEvenRow && winner?.id == tourneyData.roundList[matchCol+1][Math.floor(matchRow/2)].p1?.id) ||
-        (!isEvenRow && winner?.id == tourneyData.roundList[matchCol+1][Math.floor(matchRow/2)].p2?.id)) {
+        (isEvenRow && setWinnerAs?.id == tourneyData.roundList[matchCol+1][Math.floor(matchRow/2)].p1?.id) ||
+        (!isEvenRow && setWinnerAs?.id == tourneyData.roundList[matchCol+1][Math.floor(matchRow/2)].p2?.id)) {
         return [[{...tourneyData.roundList[matchCol][matchRow],
             winsP1: winsForP1,
             winsP2: winsForP2,
-            winner: winner,
+            winner: setWinnerAs,
             ...(newP1 != null && { p1: newP1 }),
             ...(newP2 != null && { p2: newP2 })
         }],
         placementArr
     ];
     } else {
+        // recursion
         const recResult = setMatchRecursive(matchCol+1,
             Math.floor(matchRow/2),
             0,
             0,
             null,
-            (isEvenRow? winner : null),
-            (isEvenRow? null : winner),
+            (isEvenRow? setWinnerAs : null),
+            (isEvenRow? null : setWinnerAs),
             tourneyData
         );
         return [[{...tourneyData.roundList[matchCol][matchRow],
             winsP1: winsForP1,
             winsP2: winsForP2,
-            winner: winner,
+            winner: setWinnerAs,
             ...(newP1 != null && { p1: newP1 }),
             ...(newP2 != null && { p2: newP2 })
         }, ...(recResult[0])],
         [...placementArr, ...(recResult[1])]];
     }
+}
+
+function addToPlacements(matchCol: number, winner: Player, loser: Player, numPlayers: number) {
+    let ret = [];
+    if (matchCol == numPlayers-1) {
+        ret.push({
+            player: winner,
+            placement: 1
+        }, {
+            player: loser,
+            placement: 2
+        })
+    } else {
+        ret.push({
+            player: loser,
+            placement: (Math.pow(2, Math.ceil(Math.log(numPlayers)/Math.log(2)))/Math.pow(2,(matchCol+1)))+1
+        })
+    }
+
+    return ret;
 }
 
 export const seSetMatchResults: any = async (matchRow: number,

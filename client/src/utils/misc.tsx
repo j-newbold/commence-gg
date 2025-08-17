@@ -23,3 +23,17 @@ export function createPlayerOrder(numPlayers: number) {
 export function sumBooleans(arr: boolean[]): number {
     return arr.reduce((sum, value) => sum + (value ? 1 : 0), 0);
 }
+
+export function roundUpPower2(num: number) {
+    return Math.pow(2,
+        Math.ceil(
+            Math.log(num)/Math.log(2)
+        )
+    );
+}
+
+export function numRounds(numPlayers: number) {
+    return Math.ceil(
+        Math.log2(numPlayers)
+    );
+}

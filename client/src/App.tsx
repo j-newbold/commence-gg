@@ -8,7 +8,7 @@ import Container from 'react-bootstrap/Container';
 import Match from './components/Match.tsx';
 import Dropdown from 'react-bootstrap/Dropdown';
 import { ElimBracket, MatchObj, Round, Player, RRPool } from './utils/types.tsx';
-import SEBracket from './components/brackets/SEBracket.tsx';
+import SEBracket from './components/brackets/single elim/SEBracket.tsx';
 import { createElimBracket, createRRPool } from './utils/initBrackets.tsx';
 import RRPoolComponent from './components/brackets/RRPool.tsx';
 import { createClient } from '@supabase/supabase-js'

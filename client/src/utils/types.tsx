@@ -22,8 +22,10 @@ export type MatchObj = {
     // feeds into MatchObj (true) or loser (false)
     // final number is "set wins to advance"
     p2SetWinsNeeded?: number;
-    matchId: number;
-    winsNeeded?: number;    // need to add game wins
+
+    matchId?: number;
+
+    winsNeeded?: number;
     winsP1?: number;
     winsP2?: number;
 
@@ -31,6 +33,8 @@ export type MatchObj = {
     matchRow?: number;
 
     isBye?: boolean;
+
+    bracketId?: number;
 }
 
 export type FinalsMatchObj = MatchObj & {

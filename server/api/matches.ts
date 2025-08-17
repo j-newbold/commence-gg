@@ -17,8 +17,8 @@ router.post('/create', async (req: Request, res: Response) => {
                 ma.winsP2,
                 ma.isBye,
                 ma.winsNeeded,
-                ma.matchCol,
                 ma.matchRow,
+                ma.matchCol,
                 ma.bracketId
             ]);
         }
@@ -44,17 +44,21 @@ router.post('/create', async (req: Request, res: Response) => {
 
 router.post('/update', async (req: Request, res: Response) => {
     try {
+        console.log(req.body.matches);
         let values = [];
         let plVals = [];
+        if (req.body.matches.length < 1) return
+        
         for (var ma of req.body.matches) {
             values.push([(ma.p1?.id? ma.p1.id : null),
                 (ma.p2?.id? ma.p2.id : null),
-                (ma.winner? ma.winner : null),
+                (ma.winner? ma.winner.id : null),
                 ma.matchId,
                 ma.winsP1,
                 ma.winsP2,
                 ma.isBye]);
         }
+        console.log(values);
         const data = await sql`
             UPDATE matches AS m
             SET

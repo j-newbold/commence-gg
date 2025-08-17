@@ -6,7 +6,7 @@ import RRMatch from "./RRMatch.tsx";
 import '../../../index.css';
 import Button from "react-bootstrap/Button";
 import Container from 'react-bootstrap/Container';
-import { rrSetMatchResults, rrCalcResults } from "./rrBracketFxns.tsx";
+import { rrSetMatchResults, rrCalcResults } from "./RRBracketFxns.tsx";
 import { TourneyContext } from "../../routes/Tournament.tsx";
 
 export default function RRBracket(props: any) {
@@ -16,19 +16,16 @@ export default function RRBracket(props: any) {
         setTourneyData: any
     } = useContext(TourneyContext);
 
-    const [resultsList, setResultsList] = useState<Result[]>(
+    const resultsList: Result[] | null = rrCalcResults(tourneyState.tourneyData);
+
+/*     const [resultsList, setResultsList] = useState<Result[]>(
         Array(tourneyState?.tourneyData?.playerList?.length).fill({
             gw: 0,
             gl: 0,
             mw: 0,
             ml: 0
         })
-    );
-
-    useEffect(() => {
-        //if (tourneyState.tourneyData.roundList)
-        setResultsList(rrCalcResults(tourneyState.tourneyData));
-    }, [tourneyState.tourneyData])
+    ); */
 
     const doNothing = () => {
         
@@ -51,7 +48,7 @@ export default function RRBracket(props: any) {
                         Place
                     </div>
                 </div>
-                {tourneyState?.tourneyData?.playerList?.map((e: any, i: number) => (
+                {resultsList && tourneyState?.tourneyData?.playerList?.map((e: any, i: number) => (
                     <div className="rr-row" key={i}>
                         <div className="rr-cell rr-vert-label">
                             {tourneyState.tourneyData.status == 'in_progress' && e.player.tag}

@@ -5,12 +5,14 @@ import Button from 'react-bootstrap/Button';
 import { useAuth } from "../../context/AuthContext";
 import { Player, SingleBracket, ElimBracket, Round, MatchObj, Entrant } from '../../utils/types';
 import { createPlayerOrder } from "../../utils/misc";
-import { seHandleInit, seSetMatchResults, seHandleStart } from "../brackets/single elim/seBracketFxns";
-import { rrHandleInit, rrSetMatchResults, rrHandleStart } from "../brackets/round robin/rrBracketFxns";
+import { seHandleInit, seSetMatchResults, seHandleStart } from "../brackets/single elim/SEBracketFxns";
+import { rrHandleInit, rrSetMatchResults, rrHandleStart } from "../brackets/round robin/RRBracketFxns";
+import { deHandleInit, deSetMatchResults, deHandleStart } from "../brackets/double elim/DEBracketFxns";
 
-import SEBracket from '../brackets/SEBracket';
+import SEBracket from '../brackets/single elim/SEBracket';
 import RRBracket from "../brackets/round robin/RRBracket";
 import { handleReset } from "../../utils/miscBracketFxns";
+import DEBracket from "../brackets/double elim/DEBracket";
 
 const socket = io(import.meta.env.VITE_API_URL);
 
@@ -54,7 +56,11 @@ export default function Tournament(props: any) {
                 let newRoundList = tourneyDataRef?.current?.roundList;
                 matches?.forEach((ma: any) => {
                     if (newRoundList) {
-                        newRoundList[ma.matchCol][ma.matchRow] = ma;
+                        if (ma.matchCol == -1 && tourneyDataRef.current) {
+                            tourneyDataRef.current.finals = ma;
+                        } else {
+                            newRoundList[ma.matchCol][ma.matchRow] = ma;
+                        }
                     }
                 });
                 setTourneyData((prev: any) => ({...prev, roundList: newRoundList}));
@@ -79,25 +85,33 @@ export default function Tournament(props: any) {
             })
 
             socket.on('matches cleared', () => {
+                console.log('matches cleared!');
                 setTourneyData((prev: any) => ({
                     ...prev,
-                    roundList: null
+                    roundList: null,
+                    status: 'upcoming'
                 }))
             })
 
             socket.on('match list created', (matches) => {
                 let newRoundList: any[][] = [];
                 let prevCol = -1;
+                let newFinals = null;
                 for (var ma of matches) {
-                    if (ma.matchCol > prevCol) {
-                        prevCol = ma.matchCol;
-                        newRoundList.push([]);
+                    if (ma.matchCol == -1) {
+                        newFinals = ma;
+                    } else {
+                        if (ma.matchCol > prevCol) {
+                            prevCol = ma.matchCol;
+                            newRoundList.push([]);
+                        }
+                        newRoundList[prevCol].push(ma);
                     }
-                    newRoundList[prevCol].push(ma);
                 }
                 setTourneyData((prev: any) => ({
                     ...prev,
-                    roundList: newRoundList
+                    roundList: newRoundList,
+                    ...(newFinals != null && { finals: newFinals })
                 }))
             })
 
@@ -163,7 +177,8 @@ export default function Tournament(props: any) {
                 status: (jsonData.brackets[0]?.status || null),
                 bracketId: (jsonData.brackets[0]?.bracket_id || null),
                 tournamentId: (jsonData.brackets[0]?.tournament_id.toString() || null),
-                type: (jsonData.brackets[0]?.b_type || null)
+                type: (jsonData.brackets[0]?.b_type || null),
+                finals: (jsonData.brackets[0]?.finals || null)
             }
         });
 
@@ -237,6 +252,8 @@ export default function Tournament(props: any) {
             return seHandleStart(tourneyData, setTourneyData, socket);
         } else if (tourneyData.type == 'round_robin') {
             return rrHandleStart(tourneyData, setTourneyData, socket);
+        } else if (tourneyData.type == 'double_elim') {
+            return deHandleStart(tourneyData, setTourneyData, socket);
         } else {
             return null;
         }
@@ -247,7 +264,9 @@ export default function Tournament(props: any) {
             return seHandleInit(tourneyData, socket);
         } else if (tourneyData.type == 'round_robin') {
             return rrHandleInit(tourneyData, socket);
-        } else {
+        } else if (tourneyData.type == 'double_elim') {
+            return deHandleInit(tourneyData, socket);
+        } {
             return null;
         }
     }
@@ -282,7 +301,7 @@ export default function Tournament(props: any) {
                             return (
                                 e.placement !== null?
                                     <div key={i}>
-                                        {e.placement+1}{'. '}{e.player.tag}
+                                        {e.placement}{'. '}{e.player.tag}
                                     </div>
                                     :
                                     <span key={i}></span>
@@ -291,13 +310,15 @@ export default function Tournament(props: any) {
                     </div>
                 :
                 <></>}
-                {canSignUp?
-                    <>{!isSignedUp? <Button onClick={handleSignup} >Sign Up</Button> : <Button onClick={handleSignup} >Remove Signup</Button>}</>
-                    :
+                {!canSignUp?
                     <>Register for the event to sign up for this tournament!</>
+                    :
+                    (tourneyData?.status == 'upcoming' && <>{!isSignedUp? <Button onClick={handleSignup} >Sign Up</Button> : <Button onClick={handleSignup} >Remove Signup</Button>}</>)
                 }
-                <div>
+                {tourneyData?.status != 'in_progress' && <div>
                     <Button onClick={() => startHandler(tourneyData, setTourneyData, socket)}>Start Tournament</Button>
+                </div>}
+                <div>
                     <Button onClick={() => handleReset(tourneyData, setTourneyData, socket, tid)}>Reset</Button>
                 </div>
                 {tourneyData && tourneyData.status == 'upcoming' && <div>
@@ -314,9 +335,12 @@ export default function Tournament(props: any) {
                     :
                     (tourneyData.type == 'round_robin' ?
                         <RRBracket />
+                    :
+                    (tourneyData.type == 'double_elim' ?
+                        <DEBracket />
                         :
                         <></>
-                    ))
+                    )))
                     :
                     <></>
                 }

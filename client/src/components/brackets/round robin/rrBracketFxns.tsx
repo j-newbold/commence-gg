@@ -3,7 +3,9 @@ import { Player, SingleBracket, MatchObj, Entrant, Result } from '../../../utils
 import { createPlayerOrder } from '../../../utils/misc';
 
 export const rrCalcResults = (tourneyData: SingleBracket) => {
+    // need to use only one of these
     if (tourneyData.roundList == null) return null
+    if (tourneyData.roundList.length == 0) return []
     
     let resultsList: Result[] = tourneyData.playerList.map((e: any, i: number) => {
         let singleResult: Result = {
@@ -106,7 +108,7 @@ export const rrSetMatchResults: any = async (matchRow: number,
         let playerStandingList: any[] = newTourneyData.playerList.map((e: Entrant, i: number) => {
             return {
                 ...e,
-                results: results[i],
+                results: (results? results[i] : null),
                 seed: i+1
             }
         });

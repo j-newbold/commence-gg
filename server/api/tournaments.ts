@@ -63,6 +63,9 @@ router.delete('/clear/:id', async (req: Request, res: Response) => {
             WHERE m.bracket_id =
             (SELECT b.bracket_id from brackets b
                 WHERE b.tournament_id = ${id})`;
+        const data2 = await sql`UPDATE tournaments
+            SET status = 'upcoming'
+            WHERE tournament_id = ${id}`
         res.sendStatus(200);
     } catch (error) {
         console.log(error);
@@ -128,13 +131,10 @@ router.get('/:id', async (req: Request, res: Response) => {
             }
 
             let newRoundList = [];
+            let newFinals = null;
             let prevCol = -1;
             while (j < matchInfo.length && matchInfo[j].bracket_id == curBracket) {
-                if (matchInfo[j].m_col != prevCol) {
-                    prevCol += 1;
-                    newRoundList.push(<any>[]);
-                }
-                newRoundList.at(-1).push({
+                let newData = {
                     matchCol: matchInfo[j].m_col,
                     matchRow: matchInfo[j].m_row,
                     p1: (matchInfo[j].p1_tag? {
@@ -154,12 +154,24 @@ router.get('/:id', async (req: Request, res: Response) => {
                     winsP1: matchInfo[j].wins_p1,
                     winsP2: matchInfo[j].wins_p2,
                     isBye: matchInfo[j].is_bye
-                });
+                }
+                if (matchInfo[j].m_col == -1) {
+                    newFinals = newData;
+                } else {
+                    if (matchInfo[j].m_col != prevCol) {
+                        prevCol += 1;
+                        newRoundList.push(<any>[]);
+                    }
+                    newRoundList.at(-1).push(newData);
+                }
 
                 j++;
             }
 
-            newBracketInfo = { ...bracketInfo[i], roundList: newRoundList};
+            newBracketInfo = { ...bracketInfo[i],
+                roundList: newRoundList,
+                ...(newFinals != null && {finals: newFinals})
+            };
 
             bracketMap.set(bracketInfo[i].bracket_id, newBracketInfo);
 
