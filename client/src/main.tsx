@@ -19,11 +19,11 @@ createRoot(document.getElementById('root')!).render(
             <Routes>
                 <Route element={<App />} >
                     <Route path='login' element={<Login/>} />
+                    <Route path='profile/:id' element={<Profile />} />
                     <Route path='' element={<Home />}>
                         <Route index element={<EList />} />
                         <Route path='event/:id/' element={<Event />} />
                         <Route path='event/:id/tournament/:tid' element={<Tournament />} />
-                        <Route path='profile/:id' element={<Profile />} />
                     </Route>
                     <Route path='createEvent' element={<CreateEvent />} />
                 </Route>

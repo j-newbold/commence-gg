@@ -3,6 +3,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 import Navbar from 'react-bootstrap/Navbar';
 import Nav from 'react-bootstrap/Nav';
+import {NavDropdown} from 'react-bootstrap';
 import Button from 'react-bootstrap/Button';
 import Container from 'react-bootstrap/Container';
 import Match from './components/Match.tsx';
@@ -17,6 +18,7 @@ import { Auth } from '@supabase/auth-ui-react'
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { supabase } from './utils/supabaseClient.tsx';
 import { useAuth } from './context/AuthContext.tsx';
+
 
 
 function randStr() {
@@ -54,35 +56,6 @@ function App() {
         }
     }
 
-    const handleBracketType = (event: any) => {
-        setBracketType(event);
-    };
-
-    /*const createBracket = () => {
-        if (bracketType == 'Single Elimination') {
-            const initialData: ElimBracket = createElimBracket(numPlayers, 1);
-            setBracketComponent(<SEBracket bracketData={initialData}/>);
-        }
-        else if (bracketType == 'Double Elimination') {
-            const initialData: ElimBracket = createElimBracket(numPlayers, 2);
-            setBracketComponent(<SEBracket bracketData={initialData}/>);
-        } /* else if (bracketType == 'Custom Elimination') {
-            if (typeof(numLosses) == 'number') {
-                const initialData: ElimBracket = createElimBracket(numPlayers, numLosses);
-                setBracketComponent(<SEBracket bracketData={initialData}/>);
-            } else {
-                setBracketComponent(<div>error: enter number of elimination losses!</div>)
-            }
-        } comment_ends_here else if (bracketType == 'Round Robin') {
-            const initialData: RRPool = createRRPool(numPlayers);
-            setBracketComponent(<RRPoolComponent bracketData={initialData}/>);
-        } else {
-            setBracketComponent(<div>This tournament format is not yet supported</div>)
-        }
-
-        return (<div>No bracket to display</div>);
-    } */
-
     return (
         <>
             <Navbar>
@@ -91,7 +64,10 @@ function App() {
                         {session?
                             <>
                                 <Nav.Link className='top-nav-link right-link' as={Link} to='/createEvent'>Create Event</Nav.Link>
-                                <Nav.Link className='top-nav-link right-link' onClick={handleLogout}>Log out</Nav.Link> 
+                                <Nav.Link className='top-nav-link right-link' onClick={handleLogout}>Log out</Nav.Link>
+                                <NavDropdown title='Welcome, ' id='basic-nav-dropdown'>
+                                    <NavDropdown.Item href=''>Profile</NavDropdown.Item>
+                                </NavDropdown>
                             </>:
                             <Nav.Link as={Link} className='top-nav-link right-link' to='/login'>Log in</Nav.Link>
                         }
@@ -99,24 +75,7 @@ function App() {
             </Navbar>
             <div className='main-container'>
                 <Outlet />
-            </div>
-{/*             <Button onClick={onSubmitForm}>Debug</Button>
-            <input type="number" value={numPlayers}
-                onChange={e => setNumPlayers(parseInt(e.target.value))}/>
-            <Dropdown onSelect={handleBracketType} id="dropdown-basic-button" title="Dropdown button">
-                <Dropdown.Toggle variant='success' id='dropdown-basic'>
-                    {bracketType}
-                </Dropdown.Toggle>
-                <Dropdown.Menu>
-                    <Dropdown.Item eventKey="Single Elimination">Single Elimination</Dropdown.Item>
-                    <Dropdown.Item eventKey="Double Elimination">Double Elimination</Dropdown.Item>
-                    <Dropdown.Item eventKey="Round Robin">Round Robin</Dropdown.Item>
-                    <Dropdown.Item eventKey="Swiss">Swiss</Dropdown.Item>
-                </Dropdown.Menu>
-            </Dropdown>
-            <Button variant="success" onClick={createBracket}>Submit</Button>
-            {bracketComponent} */}
-            
+            </div>            
         </>
     );
 }

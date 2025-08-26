@@ -5,7 +5,7 @@ import Match from '../../Match.tsx';
 import FinalsMatch from '../../FinalsMatch.tsx';
 import Dropdown from 'react-bootstrap/Dropdown';
 import { sumBooleans } from '../../../utils/misc.tsx';
-import { SingleBracket, MatchObj, Round, Player, RRPool, ElimBracket, FinalsMatchObj } from '../../../utils/types.tsx';
+import { SingleBracket, MatchObj, Round, Player, RRPool, ElimBracket } from '../../../utils/types.tsx';
 import { TourneyContext } from '../../routes/Tournament.tsx';
 import { seSetMatchResults } from './SEBracketFxns.tsx';
 

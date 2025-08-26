@@ -1,6 +1,14 @@
 import { Socket } from 'socket.io-client';
 import { Player, SingleBracket, MatchObj, Entrant } from '../../../utils/types';
-import { createPlayerOrder, numRounds, roundUpPower2 } from '../../../utils/misc';
+import { createPlayerOrder, numSERounds, roundUpPower2 } from '../../../utils/misc';
+import { UpdateAction } from '../BracketTypes';
+
+
+type RecursiveResult =
+    [
+        MatchObj[],
+        Entrant[]
+    ];
 
 export const deHandleInit = async (tourneyData: any, socket: Socket) => {
     console.log('initializing tournament');
@@ -10,9 +18,9 @@ export const deHandleInit = async (tourneyData: any, socket: Socket) => {
     let l = Math.floor(roundUpPower2(tourneyData.playerList.length)/4);
 
     // add winners' bracket matches
-    for (let i=0;i<Math.max(numRounds(tourneyData.playerList.length),(numRounds(tourneyData.playerList.length)*2-2));i++) {
+    for (let i=0;i<Math.max(numSERounds(tourneyData.playerList.length),(numSERounds(tourneyData.playerList.length)*2-2));i++) {
         // add winners' bracket matches
-        for (var j=0;j<numRounds(tourneyData.playerList.length)-i;j++) {
+        for (var j=0;j<numSERounds(tourneyData.playerList.length)-i;j++) {
             mList.push({
                 p1: null,
                 p2: null,
@@ -37,7 +45,7 @@ export const deHandleInit = async (tourneyData: any, socket: Socket) => {
                 isBye: false,
                 winsNeeded: tourneyData.winsNeeded,
                 matchCol: i,
-                matchRow: (i == numRounds(tourneyData.playerList.length)? 1+k : j+k),
+                matchRow: ((i == numSERounds(tourneyData.playerList.length) || i == (numSERounds(tourneyData.playerList.length)+1))? 1+k : j+k),
                 bracketId: tourneyData.bracketId
             });
         }
@@ -57,7 +65,7 @@ export const deHandleInit = async (tourneyData: any, socket: Socket) => {
         winsP2: 0,
         isBye: false,
         winsNeeded: tourneyData.winsNeeded,
-        matchCol: numRounds(tourneyData.playerList.length),
+        matchCol: numSERounds(tourneyData.playerList.length),
         matchRow: 0,
         bracketId: tourneyData.bracketId
     });
@@ -71,8 +79,8 @@ export const deHandleInit = async (tourneyData: any, socket: Socket) => {
         winsP2: 0,
         isBye: false,
         winsNeeded: tourneyData.winsNeeded,
-        matchCol: -1,
-        matchRow: -1,
+        matchCol: numSERounds(tourneyData.playerList.length)+1,
+        matchRow: 0,
         bracketId: tourneyData.bracketId
     });
     
@@ -93,29 +101,30 @@ export const deHandleInit = async (tourneyData: any, socket: Socket) => {
 }
 
 // note: returns a number of matches
-export function upperBracketLengthAtPos(matchCol: number, numPlayers: number) {
+export function upperBracketHeightAtPos(matchCol: number, seLength: number) {
     // ternary operator is used to account for existence of grand finals
-    return ((matchCol > numRounds(numPlayers))? 0 : Math.ceil(roundUpPower2(numPlayers)/Math.pow(2,matchCol+1)));
+    return ((matchCol == seLength || matchCol == seLength+1)? 1 :
+        ((matchCol < seLength)? Math.ceil(Math.pow(2,seLength-matchCol-1)) : 0));
 }
 
 function lowerBracketPlacement(matchCol: number, tourneyData: any) {
-    let numPlayers = tourneyData.playerList.length;
-    return Math.pow(2,numRounds(numPlayers)-Math.floor((matchCol+2)/2))
+    let seLength = numSERounds(tourneyData.playerList.length);
+    return Math.pow(2,seLength-Math.floor((matchCol+2)/2))
         +1
-        +((matchCol%2 == 0)? (tourneyData.roundList[matchCol].length-upperBracketLengthAtPos(matchCol, numPlayers)) : 0);
+        +((matchCol%2 == 0)? (tourneyData.roundList[matchCol].length-upperBracketHeightAtPos(matchCol, seLength)) : 0);
 }
 
-function findLBWinnerRow(matchCol: number, matchRow: number, numPlayers: number) {
-    let curRowMinusUB = matchRow-upperBracketLengthAtPos(matchCol, numPlayers);
+function findLBWinnerRow(matchCol: number, matchRow: number, seLength: number) {
+    let curRowMinusUB = matchRow-upperBracketHeightAtPos(matchCol, seLength);
     const isEvenCol: boolean = (matchCol%2 == 0);
-    return (isEvenCol? (curRowMinusUB+upperBracketLengthAtPos(matchCol+1, numPlayers))
-    : Math.floor(curRowMinusUB/2)+upperBracketLengthAtPos(matchCol+1, numPlayers));
+    return (isEvenCol? (curRowMinusUB+upperBracketHeightAtPos(matchCol+1, seLength))
+    : Math.floor(curRowMinusUB/2)+upperBracketHeightAtPos(matchCol+1, seLength));
 }
 
-function lbOutputsToP1(matchCol: number, matchRow: number, numPlayers: number) {
-    let baseMatchRow = matchRow-upperBracketLengthAtPos(matchCol, numPlayers);
+function lbOutputsToP1(matchCol: number, matchRow: number, seLength: number) {
+    let baseMatchRow = matchRow-upperBracketHeightAtPos(matchCol, seLength);
 
-    if (matchCol == numRounds(numPlayers)*2-3 || matchCol%2 == 0) {
+    if (matchCol == seLength*2-3 || matchCol%2 == 0) {
         return false;
     } else {
         if (baseMatchRow%2 == 0) {
@@ -127,16 +136,11 @@ function lbOutputsToP1(matchCol: number, matchRow: number, numPlayers: number) {
 }
 
 function findLBWinnerPlayer(matchCol: number, matchRow: number, tourneyData: any) {
-    let baseMatchRow = matchRow-upperBracketLengthAtPos(matchCol, tourneyData.playerList.length);
-    let nextColLength = upperBracketLengthAtPos(matchCol+1, tourneyData.playerList.length);
-    console.log('flbwp');
-    console.log(baseMatchRow);
-    console.log(nextColLength);
-    console.log('...');
-    console.log(matchCol);
-    console.log(matchRow);
+    let seLength = numSERounds(tourneyData.playerList.length);
+    let baseMatchRow = matchRow-upperBracketHeightAtPos(matchCol, seLength);
+    let nextColLength = upperBracketHeightAtPos(matchCol+1, seLength);
 
-    if (matchCol+1 == numRounds(tourneyData.playerList.length)) {
+    if (matchCol+1 == seLength) {
         return tourneyData.roundList[matchCol+1][0].p2;
     } else if (matchCol%2 == 0) {
         return tourneyData.roundList[matchCol+1][baseMatchRow+nextColLength].p2;
@@ -149,85 +153,90 @@ function findLBWinnerPlayer(matchCol: number, matchRow: number, tourneyData: any
     }
 }
 
-// note: could calculate numRounds at the beginning of this fxn
+// note: could calculate numSERounds at the beginning of this fxn
 const setMatchRecursive: any = (matchCol: number,
     matchRow: number,
     winsForP1: number,
     winsForP2: number,
-    setWinnerAs: Player | null,
-    newP1: Player | null,
-    newP2: Player | null,
-    tourneyData: any) => {
+    setWinnerAs: Entrant | null,
+    newP1: UpdateAction,
+    newP2: UpdateAction,
+    tourneyData: any,
+    placementSet: any) => {
+
+    let recResultFirst: RecursiveResult = [[],[]];
+
+    let recResultSecond: RecursiveResult = [[],[]];
+
+    let placementArr: Entrant[] = [];
+
+    const seLength = numSERounds(tourneyData.playerList.length);
     
-    console.log('set match recursive de');
-    console.log(matchCol);
-    console.log(matchRow);
-    
-    const isLowerBracket: boolean = (matchRow >= upperBracketLengthAtPos(matchCol,tourneyData.playerList.length));
+    const isLowerBracket: boolean = (matchRow >= upperBracketHeightAtPos(matchCol,seLength));
 
     // only used in upper bracket, ternary operator not currently necessary
-    //const isEvenRow: boolean = (isLowerBracket? ((matchRow-upperBracketLengthAtPos(matchCol, tourneyData.playerList.length))%2 == 0) : (matchRow%2 == 0));
+    //const isEvenRow: boolean = (isLowerBracket? ((matchRow-upperBracketHeightAtPos(matchCol, tourneyData.playerList.length))%2 == 0) : (matchRow%2 == 0));
     
-    let curP1 = (newP1? newP1 : (matchCol == -1? tourneyData.finals?.p1 : tourneyData.roundList[matchCol][matchRow].p1));
-    let curP2 = (newP2? newP2 : (matchCol == -1? tourneyData.finals?.p2 : tourneyData.roundList[matchCol][matchRow].p2));
+    let curP1: Entrant | null = (newP1.type == 'set'? newP1.value : (newP1.type == 'reset'? null : tourneyData.roundList[matchCol][matchRow].p1));
+    let curP2: Entrant | null = (newP2.type == 'set'? newP2.value : (newP2.type == 'reset'? null : tourneyData.roundList[matchCol][matchRow].p2));
 
-    let placementArr = [];
+
     // build array of placements
-    if (!setWinnerAs) {
-        // may create duplicates
-        if (curP1) {
+    if (!setWinnerAs && tourneyData.roundList[matchCol][matchRow].winner != null) {
+        if (curP1 && !placementSet.has(curP1.uuid)) {
+            placementSet.add(curP1.uuid);
             placementArr.push({
-                player: curP1,
+                ...curP1,
                 placement: null
             });
         }
-        if (curP2) {
+        if (curP2 && !placementSet.has(curP2.uuid)) {
             placementArr.push({
-                player: curP2,
+                ...curP2,
                 placement: null
             })
         }
-    } else {
+    } else if (setWinnerAs?.uuid != tourneyData.roundList[matchCol][matchRow].winner) {
         if (isLowerBracket) {
-            if (curP1?.id == setWinnerAs.id) {
+            if (curP2 && curP1?.uuid == setWinnerAs?.uuid && !placementSet.has(curP2?.uuid)) {
                 placementArr.push({
-                    player: curP2,
+                    ...curP2,
                     placement: lowerBracketPlacement(matchCol,tourneyData)
                 });
-            } else if (curP2?.id == setWinnerAs.id) {
+            } else if (curP1 && curP2?.uuid == setWinnerAs?.uuid && !placementSet.has(curP1?.uuid)) {
                 placementArr.push({
-                    player: curP1,
+                    ...curP1,
                     placement: lowerBracketPlacement(matchCol,tourneyData)
                 });
             }
-        } else if ((matchRow == 0 && matchCol == numRounds(tourneyData.playerList.length))) {
+        } else if ((matchRow == 0 && matchCol == seLength)) {
             // handle grand finals set 1
-            if (setWinnerAs.id == curP1?.id) {
+            if (curP1 && curP2 && setWinnerAs?.uuid == curP1?.uuid) {
                 placementArr.push({
-                    player: curP1,
+                    ...curP1,
                     placement: 1
                 }, {
-                    player: curP2,
+                    ...curP2,
                     placement: 2
                 });
             }
-        } else if (matchRow == -1 && matchCol == -1) {
+        } else if (matchRow == 0 && matchCol == seLength+1) {
             // handle grand finals set 2
             // duplicated code
-            if (setWinnerAs.id == curP1?.id) {
+            if (curP1 && curP2 && setWinnerAs?.uuid == curP1?.uuid) {
                 placementArr.push({
-                    player: curP1,
+                    ...curP1,
                     placement: 1
                 }, {
-                    player: curP2,
+                    ...curP2,
                     placement: 2
                 });
-            } else {
+            } else if (curP1 && curP2) {
                 placementArr.push({
-                    player: curP2,
+                    ...curP2,
                     placement: 1
                 }, {
-                    player: curP1,
+                    ...curP1,
                     placement: 2
                 });
             }
@@ -238,10 +247,8 @@ const setMatchRecursive: any = (matchCol: number,
         // lower bracket recursion
 
         // lower bracket base case
-        // technically not a base case since LF sends its winner up to GF
-        if (setWinnerAs?.id == findLBWinnerPlayer(matchCol, matchRow, tourneyData)?.id) {   // changed from seBracketFxns to account for both values being null
-            // duplicated code
-            return [
+        if (setWinnerAs?.uuid == findLBWinnerPlayer(matchCol, matchRow, tourneyData)?.uuid) {   // changed from seBracketFxns to account for both values being null
+            /* return [
                 [
                     {
                         ...tourneyData.roundList[matchCol][matchRow],
@@ -253,65 +260,47 @@ const setMatchRecursive: any = (matchCol: number,
                     }
                 ],
                 placementArr
-            ];
+            ]; */
         } else {
             let nextMatchCol;
             let nextMatchRow;
             // handle losers' finals
-            if (matchCol == (numRounds(tourneyData.playerList.length)*2-3)) {
-                nextMatchCol = numRounds(tourneyData.playerList.length);
+            if (matchCol == (seLength*2-3)) {
+                nextMatchCol = seLength;
                 nextMatchRow = 0;
             } else {
                 nextMatchCol = matchCol+1;
-                nextMatchRow = findLBWinnerRow(matchCol, matchRow, tourneyData.playerList.length);
+                nextMatchRow = findLBWinnerRow(matchCol, matchRow, seLength);
             }
-            let outToP1: boolean = lbOutputsToP1(matchCol, matchRow, tourneyData.playerList.length);
-            const recResult = setMatchRecursive(nextMatchCol,
+            let outToP1: boolean = lbOutputsToP1(matchCol, matchRow, seLength);
+            const winnerOutput: UpdateAction = (setWinnerAs? { type: 'set', value: setWinnerAs }: { type: 'reset' });
+            const passOutput: UpdateAction = { type: 'skip' };
+            recResultFirst = setMatchRecursive(nextMatchCol,
                 nextMatchRow,
                 0,
                 0,
                 null,
-                (outToP1? setWinnerAs : null),
-                (outToP1? null : setWinnerAs),
-                tourneyData
+                (outToP1? winnerOutput : passOutput),
+                (outToP1? passOutput : winnerOutput),
+                tourneyData,
+                placementSet
             );
-            return [[{...tourneyData.roundList[matchCol][matchRow],
-                winsP1: winsForP1,
-                winsP2: winsForP2,
-                winner: setWinnerAs,
-                ...(newP1 != null && { p1: newP1 }),
-                ...(newP2 != null && { p2: newP2 })
-            }, ...(recResult[0])],
-            [...placementArr, ...(recResult[1])]];
         }
-        
     } else {
         // upper bracket recursion
         const isEvenRow: boolean = (matchRow%2 == 0);
         const setLoserAs = (setWinnerAs? ((setWinnerAs == curP1)? curP2 : curP1) : null);
-        console.log('...');
-        console.log(setWinnerAs);
-        console.log(curP1);
 
-        // upper bracket base case 1
-        if (matchCol == -1 && matchRow == -1) {
-            return [
-                [
-                    {
-                        ...tourneyData.finals,
-                        winsP1: winsForP1,
-                        winsP2: winsForP2,
-                        winner: setWinnerAs,
-                        ...(newP1 != null && { p1: newP1 }),
-                        ...(newP2 != null && { p2: newP2 })
-                    }
-                ],
-                placementArr
-            ];  // base case 2 (sometimes recurses)
-        } else if (matchCol == numRounds(tourneyData.playerList.length) && matchRow == 0) {
-            if (((setWinnerAs == null || setWinnerAs?.id == curP1.id) && tourneyData.finals.p1 == null) ||
-                (setWinnerAs?.id == curP2?.id && tourneyData.finals.p1 != null)) {
-                return [
+        // upper bracket base case 1, never recurses (GF set 2)
+        if (matchCol == seLength+1 && matchRow == 0) {
+            // do nothing
+        } else if (matchCol == seLength && matchRow == 0) {
+            // base case 2 (sometimes recurses) (GF set 1)
+            if (((setWinnerAs == null || setWinnerAs?.uuid == curP1?.uuid) && tourneyData.roundList[seLength+1][0].p1 == null) ||
+                (setWinnerAs?.uuid == curP2?.uuid && tourneyData.roundList[seLength+1][0].p1 != null)) {
+                // moved return statement below
+
+                /* return [
                     [
                         {
                             ...tourneyData.roundList[matchCol][matchRow],
@@ -323,104 +312,83 @@ const setMatchRecursive: any = (matchCol: number,
                         }
                     ],
                     placementArr
-                ];
+                ]; */
             } else {
-                if (setWinnerAs == null || setWinnerAs?.id == curP1.id) {
+                if (setWinnerAs == null || setWinnerAs?.uuid == curP1?.uuid) {
                     // reset gf2
-                    const recResult = setMatchRecursive(-1,
-                        -1,
+                    recResultFirst = setMatchRecursive(seLength+1,
                         0,
                         0,
+                        0,
                         null,
-                        null,
-                        null,
-                        tourneyData
+                        { type: 'reset' },
+                        { type: 'reset' },
+                        tourneyData,
+                        placementSet
                     );
-                    return [
-                        [
-                            {...tourneyData.roundList[matchCol][matchRow],
-                                winsP1: winsForP1,
-                                winsP2: winsForP2,
-                                winner: setWinnerAs,
-                                ...(newP1 != null && { p1: newP1 }),
-                                ...(newP2 != null && { p2: newP2 })
-                            },
-                            ...(recResult[0])
-                        ],
-                        [...placementArr, ...(recResult[1])]
-                    ];
                 } else {
                     // init gf2
-                    const recResult = setMatchRecursive(-1,
-                        -1,
+                    recResultFirst = setMatchRecursive(seLength+1,
+                        0,
                         0,
                         0,
                         null,
-                        curP1,
-                        curP2,
-                        tourneyData
+                        { type: 'set', value: curP1 },
+                        { type: 'set', value: curP2 },
+                        tourneyData,
+                        placementSet
                     );
-                    return [
-                        [
-                            {...tourneyData.roundList[matchCol][matchRow],
-                                winsP1: winsForP1,
-                                winsP2: winsForP2,
-                                winner: setWinnerAs,
-                                ...(newP1 != null && { p1: newP1 }),
-                                ...(newP2 != null && { p2: newP2 })
-                            },
-                            ...(recResult[0])
-                        ],
-                        [...placementArr, ...(recResult[1])]
-                    ];
                 }
             }
         } else {
             // recurse (upper bracket)
-            var recResultUpper = null;
-            var recResultLower = null;
-            console.log(findUpperBracketOutput(matchCol, matchRow, tourneyData, isEvenRow)?.id);
-            if (setWinnerAs?.id != findUpperBracketOutput(matchCol, matchRow, tourneyData, isEvenRow)?.id) {
-                console.log('recurse upper');
-                recResultUpper = setMatchRecursive(matchCol+1,
+            if (setWinnerAs?.uuid != findUpperBracketOutput(matchCol, matchRow, tourneyData, isEvenRow)?.uuid) {
+                const winnerOutput: UpdateAction = (setWinnerAs? { type: 'set', value: setWinnerAs }: { type: 'reset' });
+                recResultFirst = setMatchRecursive(matchCol+1,
                     Math.floor(matchRow/2),
                     0,
                     0,
                     null,
-                    (isEvenRow? setWinnerAs : null),
-                    (isEvenRow? null : setWinnerAs),
-                    tourneyData
+                    (isEvenRow? winnerOutput : { type: 'skip' }),
+                    (isEvenRow? { type: 'skip' } : winnerOutput),
+                    tourneyData,
+                    placementSet
                 );
             }
-            if (setLoserAs?.id != findLowerBracketOutput(matchCol, matchRow, tourneyData, isEvenRow)?.id) {
-                console.log('recurse lower');
-                recResultLower = setMatchRecursive(lowerBracketMatchCol(matchCol),
-                    lowerBracketMatchRow(matchCol, matchRow, tourneyData.playerList.length),
+            if (setLoserAs?.uuid != findLowerBracketOutput(matchCol, matchRow, tourneyData, isEvenRow)?.uuid) {
+                const loserOutput: UpdateAction = (setLoserAs? { type: 'set', value: setLoserAs }: { type: 'reset' });
+                recResultSecond = setMatchRecursive(lowerBracketMatchCol(matchCol),
+                    lowerBracketMatchRow(matchCol, matchRow, seLength),
                     0,
                     0,
                     null,
-                    ((matchCol > 0 || isEvenRow)? setLoserAs : null),
-                    ((matchCol == 0 && !isEvenRow)? setLoserAs : null),
-                    tourneyData
+                    ((matchCol > 0 || isEvenRow)? loserOutput : { type: 'skip' }),
+                    ((matchCol == 0 && !isEvenRow)? loserOutput : { type: 'skip' }),
+                    tourneyData,
+                    placementSet
                 );
             }
-
-            return [[{
+        }
+    }
+    return [
+        [
+            {
                 ...tourneyData.roundList[matchCol][matchRow],
                 winsP1: winsForP1,
                 winsP2: winsForP2,
                 winner: setWinnerAs,
-                ...(newP1 != null && { p1: newP1 }),
-                ...(newP2 != null && { p2: newP2 })
-            }, ...(recResultUpper? recResultUpper[0] : []),
-                ...(recResultLower? recResultLower[0] : [])],
-            [
-                ...placementArr,
-                ...(recResultUpper? recResultUpper[1] : []),
-                ...(recResultLower? recResultLower[1] : [])
-            ]];
-        }
-    }
+                ...((newP1.type == 'reset')? { p1: null } : (newP1.type == 'set' && {p1: newP1.value})),
+                ...((newP2.type == 'reset')? { p2: null } : (newP2.type == 'set' && {p2: newP2.value})),
+            },
+            ...(recResultFirst? recResultFirst[0] : []),    // could do null at the end of these lines instead of []
+            ...(recResultSecond? recResultSecond[0] : [])
+        ],
+        [
+            ...placementArr,
+            ...(recResultFirst? recResultFirst[1] : []),
+            ...(recResultSecond? recResultSecond[1] : [])
+        ]
+    ];
 }
 
 function findUpperBracketOutput(matchCol: number, matchRow: number, tourneyData: any, isEvenRow: boolean) {
@@ -432,8 +400,9 @@ function findUpperBracketOutput(matchCol: number, matchRow: number, tourneyData:
 }
 
 function findLowerBracketOutput(matchCol: number, matchRow: number, tourneyData: any, isEvenRow: boolean) {
+    let seLength = numSERounds(tourneyData.playerList.length);
     let newCol = ((matchCol == 0)? 0 : matchCol*2-1);
-    let newRow = upperBracketLengthAtPos(matchCol, tourneyData.playerList.length)+
+    let newRow = upperBracketHeightAtPos(matchCol, seLength)+
         ((matchCol == 0)? Math.floor(matchRow/2) : matchRow);
     return (isEvenRow? tourneyData.roundList[newCol][newRow].p1 : tourneyData.roundList[newCol][newRow].p2);
 }
@@ -442,40 +411,45 @@ function lowerBracketMatchCol(matchCol: number) {
     return ((matchCol == 0)? 0 : matchCol*2-1);
 }
 
-function lowerBracketMatchRow(matchCol: number, matchRow: number, numPlayers: number) {
-    return ((matchCol == 0)? Math.floor(matchRow/2) : matchRow)+upperBracketLengthAtPos(lowerBracketMatchCol(matchCol), numPlayers);
+function lowerBracketMatchRow(matchCol: number, matchRow: number, seLength: number) {
+    return ((matchCol == 0)? Math.floor(matchRow/2) : matchRow)+upperBracketHeightAtPos(lowerBracketMatchCol(matchCol), seLength);
 }
 
 export const deSetMatchResults: any = async (matchRow: number,
     matchCol: number,
     winsForP1: number,
     winsForP2: number,
-    winner: Player | null,
-    newP1: Player | null,
-    newP2: Player | null,
+    winner: Entrant | null,
+    newP1: UpdateAction,
+    newP2: UpdateAction,
     tourneyData: any,
     setTourneyData: any,
     socket: Socket) => {
-    console.log('de set match results');
     let [newMatches, newPlacements] = setMatchRecursive(matchCol,
         matchRow,
         winsForP1,
         winsForP2,
         winner,
-        newP1,
+        newP1, // newp1/p2 are guaranteed to be 'skip' currently, but just in case
         newP2,
-        tourneyData);
+        tourneyData,
+        new Set());
     
     // remove duplicates from placement array
     let placementSet = new Set();
     newPlacements = newPlacements.reduce((memo: any, iteratee: any) => {
-        if (!placementSet.has(iteratee.player.id)) {
-            placementSet.add(iteratee.player.id);
+        if (!placementSet.has(iteratee.uuid)) {
+            placementSet.add(iteratee.uuid);
             memo.push(iteratee);
+        } else {
+            console.log('duplicate found');
         }
 
         return memo;
     }, []);
+
+    console.log('new matches:');
+    console.log(newMatches);
 
     const response = await fetch(import.meta.env.VITE_API_URL+`matches/update`, {
         method: 'POST',
@@ -494,19 +468,13 @@ export const deSetMatchResults: any = async (matchRow: number,
     }
 
     let newRoundList = tourneyData.roundList;
-    let newFinals = null;
     newMatches.map((e: any, i: number) => {
-        if (e.matchCol == -1) {
-            newFinals = e;
-        } else {
-            newRoundList[e.matchCol][e.matchRow] = e;
-        }
+        newRoundList[e.matchCol][e.matchRow] = e;
         return;
     });
     setTourneyData({
         ...tourneyData,
-        roundList: newRoundList,
-        ...(newFinals != null && { finals: newFinals })
+        roundList: newRoundList
     });
 }
 
@@ -515,12 +483,11 @@ export const deHandleStart = async (tourneyData: any, setTourneyData: any, socke
     let maxLength = roundUpPower2(tourneyData.playerList.length/2);
     while (playerListWithByes.length < maxLength) {
         let newBye: Entrant = {
-            player: {
-                seed: playerListWithByes.length,
-                tag: 'Bye',
-                isHuman: false
-            },
-            placement: null
+            tag: 'Bye',
+            isHuman: false,
+            placement: null,
+            id: playerListWithByes.length+1,    // seed
+            uuid: null
         }
         playerListWithByes.push(newBye);
     }
@@ -529,14 +496,13 @@ export const deHandleStart = async (tourneyData: any, setTourneyData: any, socke
     let newMatches = tourneyData.roundList[0].slice(0,maxLength);
 
     newMatches = newMatches.map((e: any, i: number): MatchObj => {
-        //console.log(!playerListWithByes[seedOrder[i*2]-1].player.isHuman || !playerListWithByes[seedOrder[i*2+1]-1].player.isHuman);
         return {
             ...e,
-            p1: playerListWithByes[seedOrder[i*2]-1].player,
-            p2: playerListWithByes[seedOrder[i*2+1]-1].player,
+            p1: playerListWithByes[seedOrder[i*2]-1],
+            p2: playerListWithByes[seedOrder[i*2+1]-1],
             winner: null,
             loser: null,
-            isBye: ( !playerListWithByes[seedOrder[i*2]-1].player.isHuman || !playerListWithByes[seedOrder[i*2+1]-1].player.isHuman)
+            isBye: ( !playerListWithByes[seedOrder[i*2]-1].isHuman || !playerListWithByes[seedOrder[i*2+1]-1].isHuman)
         }
     });
     setTourneyData((prev: SingleBracket): SingleBracket => {

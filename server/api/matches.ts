@@ -10,9 +10,9 @@ router.post('/create', async (req: Request, res: Response) => {
         let vals: any = [];
         for (var ma of req.body.matches) {
             vals.push([
-                (ma.p1?.id? ma.p1.id : null),
-                (ma.p2?.id? ma.p2.id : null),
-                (ma.winner? ma.winner.id : null),
+                (ma.p1?.uuid? ma.p1.uuid : null),
+                (ma.p2?.uuid? ma.p2.uuid : null),
+                (ma.winner? ma.winner.uuid : null),
                 ma.winsP1,
                 ma.winsP2,
                 ma.isBye,
@@ -44,21 +44,22 @@ router.post('/create', async (req: Request, res: Response) => {
 
 router.post('/update', async (req: Request, res: Response) => {
     try {
-        console.log(req.body.matches);
         let values = [];
         let plVals = [];
         if (req.body.matches.length < 1) return
+
+/*         console.log('matches:');
+        console.log(req.body.matches); */
         
         for (var ma of req.body.matches) {
-            values.push([(ma.p1?.id? ma.p1.id : null),
-                (ma.p2?.id? ma.p2.id : null),
-                (ma.winner? ma.winner.id : null),
+            values.push([(ma.p1?.uuid? ma.p1.uuid : null),
+                (ma.p2?.uuid? ma.p2.uuid : null),
+                (ma.winner? ma.winner.uuid : null),
                 ma.matchId,
                 ma.winsP1,
                 ma.winsP2,
                 ma.isBye]);
         }
-        console.log(values);
         const data = await sql`
             UPDATE matches AS m
             SET
@@ -73,9 +74,12 @@ router.post('/update', async (req: Request, res: Response) => {
             ) AS data(p1_id, p2_id, winner_id, match_id, wins_p1, wins_p2, is_bye)
             WHERE m.match_id = (data.match_id)::int`;
 
-        if (req.body?.placements) {
+/*         console.log('placements');
+        console.log(req.body.placements); */
+
+        if (req.body?.placements && req.body.placements.length > 0) {
             for (var pl of req.body.placements) {
-                plVals.push([pl.player.id,
+                plVals.push([pl.uuid,
                     pl.placement
                 ])
             }
@@ -95,7 +99,7 @@ router.post('/update', async (req: Request, res: Response) => {
             SET status = ${req.body.newStatus}
             WHERE tournament_id = ${req.body.tid}`;
         }
-
+        
         res.status(200).json([req.body?.matches, req.body?.placements]);
     } catch (error) {
         console.log(error);

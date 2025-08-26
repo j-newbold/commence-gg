@@ -3,6 +3,7 @@ import Container from "react-bootstrap/Container";
 import Nav from 'react-bootstrap/Nav';
 import { Link } from 'react-router-dom';
 import { useAuth } from "../../context/AuthContext";
+import './LeftNav.css';
 
 export default function LeftNav() {
     const { session } = useAuth();

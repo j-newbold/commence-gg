@@ -18,15 +18,6 @@ export default function RRBracket(props: any) {
 
     const resultsList: Result[] | null = rrCalcResults(tourneyState.tourneyData);
 
-/*     const [resultsList, setResultsList] = useState<Result[]>(
-        Array(tourneyState?.tourneyData?.playerList?.length).fill({
-            gw: 0,
-            gl: 0,
-            mw: 0,
-            ml: 0
-        })
-    ); */
-
     const doNothing = () => {
         
     }
@@ -38,7 +29,7 @@ export default function RRBracket(props: any) {
                     <div className="rr-cell">{}</div>
                     {tourneyState?.tourneyData?.playerList?.map((e: any, i: number) => {
                         return <div className="rr-hor-label rr-cell" key={i}>
-                            {tourneyState.tourneyData.status == 'in_progress' && e.player.tag}
+                            {tourneyState.tourneyData.status == 'in_progress' && e.tag}
                         </div>
                     })}
                     <div className="rr-cell">
@@ -51,7 +42,7 @@ export default function RRBracket(props: any) {
                 {resultsList && tourneyState?.tourneyData?.playerList?.map((e: any, i: number) => (
                     <div className="rr-row" key={i}>
                         <div className="rr-cell rr-vert-label">
-                            {tourneyState.tourneyData.status == 'in_progress' && e.player.tag}
+                            {tourneyState.tourneyData.status == 'in_progress' && e.tag}
                         </div>
                         {tourneyState?.tourneyData?.playerList?.map((f: any, j: number) => (
                             <React.Fragment key={j}>
@@ -71,7 +62,7 @@ export default function RRBracket(props: any) {
                         <RRStanding
                             resultObj={resultsList[i]}
                         />
-                        <div className="rr-placement rr-cell">{tourneyState.tourneyData.playerList[i].placement === null ? '-' : tourneyState.tourneyData.playerList[i].placement+1}</div>
+                        <div className="rr-placement rr-cell">{tourneyState.tourneyData.playerList[i].placement === null ? '-' : tourneyState.tourneyData.playerList[i].placement}</div>
                     </div>
                 ))}
             </div>

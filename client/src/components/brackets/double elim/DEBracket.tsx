@@ -3,10 +3,10 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import '../../../index.css';
 import Match from "../../Match.tsx";
 import Dropdown from 'react-bootstrap/Dropdown';
-import { SingleBracket, MatchObj, Round, Player, RRPool, ElimBracket, FinalsMatchObj } from '../../../utils/types.tsx';
+import { SingleBracket, MatchObj, Round, Player, RRPool, ElimBracket } from '../../../utils/types.tsx';
 import { TourneyContext } from "../../routes/Tournament.tsx";
-import { deSetMatchResults, upperBracketLengthAtPos } from './DEBracketFxns.tsx';
-import { numRounds } from "../../../utils/misc.tsx";
+import { deSetMatchResults, upperBracketHeightAtPos } from './DEBracketFxns.tsx';
+import { numSERounds } from "../../../utils/misc.tsx";
 
 const offset = 450;
 const matchSpacing = 125;
@@ -19,6 +19,8 @@ export default function DEBracket(props: any) {
         setTourneyData: any
     } = useContext(TourneyContext);
 
+    const seLength = numSERounds(tourneyState.tourneyData.playerList.length);
+
     var upperBracketHeight: number = ((tourneyState?.tourneyData?.roundList?.length > 0)? tourneyState?.tourneyData?.roundList[0].length * matchSpacing: 0);
 
     return (
@@ -27,26 +29,13 @@ export default function DEBracket(props: any) {
                 top: String(offset)+'px',
                 position: 'absolute'
         }}>
-            
-            {tourneyState.tourneyData.finals? <Match
-                style={{
-                    position: 'absolute',
-                    top: String(upperBracketHeight/2+roundLabelHeight)+'px',
-                    left: String(leftOffset*(numRounds(tourneyState.tourneyData.playerList.length)+1))+'px'
-                }}
-                rIndex={-1}
-                mIndex={-1}
-                matchProp={tourneyState.tourneyData.finals}
-                p2SetWinsNeeded={1}
-                setMatchResults={deSetMatchResults}
-            /> : <></>}
 
             {tourneyState.tourneyData?.roundList?.map((rd: any, rIndex: number) => {
                 // each time we come upon a column, we slice it
                 // we calculate upper bracket height up above
                 // then we render the line break
                 // then we render the lower bracket
-                let curUbHeight = upperBracketLengthAtPos(rIndex, tourneyState.tourneyData.playerList.length);
+                let curUbHeight = upperBracketHeightAtPos(rIndex, seLength);
                 let upperRdSlice = rd.slice(0,curUbHeight);
                 let lowerRdSlice = rd.slice(curUbHeight);
 

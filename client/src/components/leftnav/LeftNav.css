@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.left-nav {
+    @apply flex flex-col items-start justify-around
+    h-full ml-5;
+}
+
+.left-nav-link {
+    @apply hover:bg-gray-500 p-2 w-full hover:text-gray-200 flex;
+}

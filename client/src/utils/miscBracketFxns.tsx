@@ -85,8 +85,8 @@ export function handleSubmitMatchChange (
                 tempWinsP1,
                 tempWinsP2,
                 curMatch.p1,
-                null,
-                null,
+                { type: 'skip' },
+                { type: 'skip' },
                 tourneyData,
                 setTourneyData,
                 socket
@@ -103,8 +103,8 @@ export function handleSubmitMatchChange (
                 tempWinsP1,
                 tempWinsP2,
                 curMatch.p2,
-                null,
-                null,
+                { type: 'skip' },
+                { type: 'skip' },
                 tourneyData,
                 setTourneyData,
                 socket
@@ -121,8 +121,8 @@ export function handleSubmitMatchChange (
                 tempWinsP1,
                 tempWinsP2,
                 null,
-                null,
-                null,
+                { type: 'skip' },
+                { type: 'skip' },
                 tourneyData,
                 setTourneyData,
                 socket

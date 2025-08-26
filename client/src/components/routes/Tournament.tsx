@@ -9,10 +9,14 @@ import { seHandleInit, seSetMatchResults, seHandleStart } from "../brackets/sing
 import { rrHandleInit, rrSetMatchResults, rrHandleStart } from "../brackets/round robin/RRBracketFxns";
 import { deHandleInit, deSetMatchResults, deHandleStart } from "../brackets/double elim/DEBracketFxns";
 
+import Tab from "react-bootstrap/Tab";
+import Tabs from 'react-bootstrap/Tabs';
+
 import SEBracket from '../brackets/single elim/SEBracket';
 import RRBracket from "../brackets/round robin/RRBracket";
 import { handleReset } from "../../utils/miscBracketFxns";
 import DEBracket from "../brackets/double elim/DEBracket";
+import EntrantList from "../EntrantList";
 
 const socket = io(import.meta.env.VITE_API_URL);
 
@@ -32,6 +36,7 @@ export default function Tournament(props: any) {
     const [canSignUp, setCanSignUp] = useState<boolean>(false);
     const { id, tid } = useParams();
     const { session } = useAuth();
+    const [tabValue, setTabValue] = useState<any>('entrants');
 
     const location = useLocation();
 
@@ -48,34 +53,32 @@ export default function Tournament(props: any) {
                 ]}));
             })
 
-            socket.on('signup removed', (id) => {
-                setTourneyData((prev: any) => ({...prev, playerList: prev.playerList.filter((el: any) => el.player.id != id)}));
+            socket.on('signup removed', (uuid) => {
+                setTourneyData((prev: any) => ({...prev, playerList: prev.playerList.filter((el: any) => el.uuid != uuid)}));
             })
 
             socket.on('matches updated', (matches) => {
                 let newRoundList = tourneyDataRef?.current?.roundList;
                 matches?.forEach((ma: any) => {
                     if (newRoundList) {
-                        if (ma.matchCol == -1 && tourneyDataRef.current) {
-                            tourneyDataRef.current.finals = ma;
-                        } else {
-                            newRoundList[ma.matchCol][ma.matchRow] = ma;
-                        }
+                        newRoundList[ma.matchCol][ma.matchRow] = ma;
                     }
                 });
                 setTourneyData((prev: any) => ({...prev, roundList: newRoundList}));
             })
 
             socket.on('placements updated', (placements) => {
+                console.log('pl update');
+                console.log(placements);
                 if (tourneyDataRef.current?.playerList) {
                     let newPlayerList = tourneyDataRef.current.playerList;
                     let placementMap = new Map();
                     placements?.forEach((pl: any) => {
-                        placementMap.set(pl.player.id, pl);
+                        placementMap.set(pl.uuid, pl);
                     });
                     newPlayerList = newPlayerList.map((e: any, i: number) => {
-                        if (placementMap.has(e.player.id)) {
-                            return placementMap.get(e.player.id);
+                        if (placementMap.has(e.uuid)) {
+                            return placementMap.get(e.uuid);
                         } else {
                             return e;
                         }
@@ -89,7 +92,13 @@ export default function Tournament(props: any) {
                 setTourneyData((prev: any) => ({
                     ...prev,
                     roundList: null,
-                    status: 'upcoming'
+                    status: 'upcoming',
+                    playerList: prev.playerList.map((e: any, i: number) => {
+                        return {
+                            ...e,
+                            placement: null
+                        }
+                    })
                 }))
             })
 
@@ -141,7 +150,7 @@ export default function Tournament(props: any) {
         console.log(tourneyData);
         if (session && tourneyData?.playerList) {
             setIsSignedUp(tourneyData.playerList.some((e:any) => {
-                return session.user.id === e.player.id
+                return session.user.id === e.uuid
             }));
         }
     }, [tourneyData])
@@ -163,13 +172,11 @@ export default function Tournament(props: any) {
             return {
                 playerList: jsonData.entrants.map((e: any, i: number): Entrant => {
                     return {    // can do the 'isbye' check here
-                        player: {
-                            seed: i+1,
-                            tag: e.tag,
-                            isHuman: true,
-                            id: e.id
-                        },
-                        placement: e.placement
+                        tag: e.tag,
+                        isHuman: true,
+                        placement: e.placement,
+                        id: e.seed, // currently necessary to name this "id" rather than "seed" with dnd-kit/sortable
+                        uuid: e.id
                     }
                 }),
                 roundList: (jsonData.brackets[0]?.roundList || null),
@@ -177,8 +184,7 @@ export default function Tournament(props: any) {
                 status: (jsonData.brackets[0]?.status || null),
                 bracketId: (jsonData.brackets[0]?.bracket_id || null),
                 tournamentId: (jsonData.brackets[0]?.tournament_id.toString() || null),
-                type: (jsonData.brackets[0]?.b_type || null),
-                finals: (jsonData.brackets[0]?.finals || null)
+                type: (jsonData.brackets[0]?.b_type || null)
             }
         });
 
@@ -215,7 +221,8 @@ export default function Tournament(props: any) {
                             }, body: JSON.stringify({
                                 eventId: id,
                                 tournamentId: tid,
-                                userId: session.user.id
+                                userId: session.user.id,
+                                seed: (tourneyData?.playerList?.length?+1 : 1)
                             })
                         });
                         const userJson = await response.json()
@@ -283,25 +290,38 @@ export default function Tournament(props: any) {
                 <div className="text-3xl">
                     {/* {tournament?.tournament_name} */}
                 </div>
-                {tourneyData?.playerList? 
-                    <div>Entrants:
-                        {tourneyData.playerList.map((e: any, i: number) => {
-                            return (
-                                <div key={i}>{e.player.tag}</div>
-                            );
-                        })}
-                    </div>
+                <div>
+                    <Tabs
+                        activeKey={tabValue}
+                        id='tourney-tabs'
+                        className='mb-3'
+                        onSelect={(e) => {
+                            setTabValue(e);
+                        }}
+                    >
+                        <Tab eventKey='entrants' title='Entrants'>
+                            Entrants
+                        </Tab>
+                        <Tab eventKey='bracket' title='Bracket'>
+                            Bracket
+                        </Tab>
+                        <Tab eventKey='standings' title='Standings'>
+                            Standings
+                        </Tab>
+                    </Tabs>
+                </div>
+                {tabValue == 'entrants' && tourneyData?.playerList? 
+                    <EntrantList />
                 : <></>}
-                {tourneyData?.playerList?
+                {tabValue == 'standings' && tourneyData?.playerList?
                     <div>Standings:
-                        {/* will need to sort this list*/}
                         {tourneyData.playerList.slice().sort((a: any, b: any) => {
                             return (a.placement - b.placement)
                         }).map((e: any, i: number) => {
                             return (
                                 e.placement !== null?
                                     <div key={i}>
-                                        {e.placement}{'. '}{e.player.tag}
+                                        {e.placement}{'. '}{e.tag}
                                     </div>
                                     :
                                     <span key={i}></span>
@@ -329,7 +349,7 @@ export default function Tournament(props: any) {
                         <Button onClick={handleClear}>Clear Tournament</Button>
                     </div>
                 }
-                {tourneyData?
+                {tabValue == 'bracket' && tourneyData?
                     (tourneyData.type == 'single_elim' ?
                         <SEBracket />
                     :

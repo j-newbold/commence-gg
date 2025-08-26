@@ -1,6 +1,7 @@
 import { Socket } from 'socket.io-client';
-import { Player, SingleBracket, MatchObj, Entrant, Result } from '../../../utils/types';
+import { SingleBracket, MatchObj, Entrant, Result } from '../../../utils/types';
 import { createPlayerOrder } from '../../../utils/misc';
+import { UpdateAction } from '../BracketTypes';
 
 export const rrCalcResults = (tourneyData: SingleBracket) => {
     // need to use only one of these
@@ -18,16 +19,16 @@ export const rrCalcResults = (tourneyData: SingleBracket) => {
             if (j != i) {
                 singleResult.gw += (tourneyData.roundList[i][j-i-1].winsP1 || 0);
                 singleResult.gl += (tourneyData.roundList[i][j-i-1].winsP2 || 0);
-                singleResult.mw += ((tourneyData.roundList[i][j-i-1].winner == tourneyData.playerList[i].player.id)? 1 : 0);
-                singleResult.ml += ((tourneyData.roundList[i][j-i-1].winner && tourneyData.roundList[i][j-i-1].winner != tourneyData.playerList[i].player.id)? 1 : 0);
+                singleResult.mw += ((tourneyData.roundList[i][j-i-1].winner?.uuid == tourneyData.playerList[i].uuid)? 1 : 0);
+                singleResult.ml += ((tourneyData.roundList[i][j-i-1].winner?.uuid && tourneyData.roundList[i][j-i-1].winner?.uuid != tourneyData.playerList[i].uuid)? 1 : 0);
             }
         }
         for (let j=i;j>=0;j--) {
             if (j != i) {
                 singleResult.gw += (tourneyData.roundList[j][i-j-1].winsP2 || 0);
                 singleResult.gl += (tourneyData.roundList[j][i-j-1].winsP1 || 0);
-                singleResult.mw += (tourneyData.roundList[j][i-j-1].winner == tourneyData.playerList[i].player.id? 1 : 0);
-                singleResult.ml += ((tourneyData.roundList[j][i-j-1].winner && tourneyData.roundList[j][i-j-1].winner != tourneyData.playerList[i].player.id)? 1 : 0);
+                singleResult.mw += (tourneyData.roundList[j][i-j-1].winner?.uuid == tourneyData.playerList[i].uuid? 1 : 0);
+                singleResult.ml += ((tourneyData.roundList[j][i-j-1].winner?.uuid && tourneyData.roundList[j][i-j-1].winner?.uuid != tourneyData.playerList[i].uuid)? 1 : 0);
             }
         }
         return singleResult;
@@ -73,9 +74,9 @@ export const rrSetMatchResults: any = async (matchRow: number,
     matchCol: number,
     winsForP1: number,
     winsForP2: number,
-    winner: string | null,
-    newP1: Player | null,
-    newP2: Player | null,
+    winner: Entrant | null,
+    newP1: UpdateAction,    // unused parameters
+    newP2: UpdateAction,
     tourneyData: any,
     setTourneyData: any,
     socket: Socket) => {
@@ -125,7 +126,7 @@ export const rrSetMatchResults: any = async (matchRow: number,
         })
         
         for (let i=0;i<playerStandingList.length;i++) {
-            newTourneyData.playerList[playerStandingList[i].seed-1].placement = i;
+            newTourneyData.playerList[playerStandingList[i].seed-1].placement = i+1;
         }
 /*         setTourneyData((prev: SingleBracket): SingleBracket => {
             return {
@@ -165,8 +166,8 @@ export const rrHandleStart = async (tourneyData: any, setTourneyData: any, socke
         return e.map((f: any, j: number) => {
             return {
                 ...f,
-                p1: tourneyData.playerList[i].player,
-                p2: tourneyData.playerList[j+i+1].player,
+                p1: tourneyData.playerList[i],
+                p2: tourneyData.playerList[j+i+1],
                 winner: null,
                 loser: null,
                 isBye: false

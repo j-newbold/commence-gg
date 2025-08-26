@@ -1,3 +1,4 @@
+// deprecated
 export type Player = {
     seed?: number;
     tag: string;
@@ -13,10 +14,10 @@ export type Result = {
 }
 
 export type MatchObj = {
-    p1?: Player | null;
-    p2?: Player | null;
-    winner: string | null;
-    loser?: Player | null;
+    p1?: Entrant | null;
+    p2?: Entrant | null;
+    winner: Entrant | null;
+    loser?: Entrant | null;
     // the boolean denotes whether or not winner of
     // match at [number, number, number]
     // feeds into MatchObj (true) or loser (false)
@@ -35,9 +36,8 @@ export type MatchObj = {
     isBye?: boolean;
 
     bracketId?: number;
-}
 
-export type FinalsMatchObj = MatchObj & {
+    status?: string;
 }
 
 // probably deprecated
@@ -51,8 +51,6 @@ export type SingleBracket = {
 
     playerList: Entrant[]
 
-    finals?: MatchObj | null;
-
     winsNeeded: number | null;
 
     status: string | null;
@@ -64,8 +62,11 @@ export type SingleBracket = {
 }
 
 export type Entrant = {
-    player: Player;
     placement: number | null;
+    id: number; // using "id" instead of "seed" to work better with dnd-kit/sortable
+    tag: string;
+    isHuman?: boolean;
+    uuid: string | null;
 }
 
 export type FullTournament = {

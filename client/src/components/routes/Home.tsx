@@ -9,9 +9,9 @@ export default function Home() {
 
     return (
         <>
-            {session?
+            {/* session?
                 <LeftNav /> :
-                <></>}
+                <></> */}
             <div className="main-panel">
                 <Outlet />
             </div>

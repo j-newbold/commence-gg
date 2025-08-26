@@ -26,13 +26,11 @@ export function sumBooleans(arr: boolean[]): number {
 
 export function roundUpPower2(num: number) {
     return Math.pow(2,
-        Math.ceil(
-            Math.log(num)/Math.log(2)
-        )
+        numSERounds(num)
     );
 }
 
-export function numRounds(numPlayers: number) {
+export function numSERounds(numPlayers: number) {
     return Math.ceil(
         Math.log2(numPlayers)
     );
