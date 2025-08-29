@@ -27,10 +27,8 @@ export default function EList () {
 
     return (
         <div>
-            <div className="">
-                <h1>
-                    Tournaments
-                </h1>
+            <div className="page-heading">
+                Tournaments
                 
             </div>
             {eventList?.map((e: any, i: number) => {

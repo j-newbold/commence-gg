@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+    .profile-page {
+        @apply m-3 w-full ml-20 mt-8
+    }
+
+    .profile-header {
+        @apply text-3xl
+    }
+
+    .admin-controls {
+        @apply flex flex-row flex-wrap bg-gray-200 mt-3 mb-3 whitespace-nowrap w-full;
+    }
+
+    .ac-block {
+        @apply pl-2 pr-2 pb-1;  /* standardize padding-bottom by adding a div maybe */
+    }
+
+    .ac-button {
+        @apply pl-2 pr-2 border-l-4 cursor-pointer pb-1;
+    }
+
+    .ac-icon {
+        @apply inline-block mr-1;
+    }
+
+    .page-heading {
+        @apply text-3xl;
+    }
+
+    .event-tabs {
+        @apply ml-auto mr-auto block w-full;
+    }
+
+    #event-tabs {
+        @apply flex justify-center;
+    }
+}
+
+.tourney-tabs {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+}
+#tourney-tabs {
+    display: flex;
+    justify-content: center;
+}
+

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, createContext } from "react";
 import { useParams, useLocation } from "react-router";
 import { io, Socket } from 'socket.io-client';
 import Button from 'react-bootstrap/Button';
+import { Container } from "react-bootstrap";
 import { useAuth } from "../../context/AuthContext";
 import { Player, SingleBracket, ElimBracket, Round, MatchObj, Entrant } from '../../utils/types';
 import { createPlayerOrder } from "../../utils/misc";
@@ -11,6 +12,10 @@ import { deHandleInit, deSetMatchResults, deHandleStart } from "../brackets/doub
 
 import Tab from "react-bootstrap/Tab";
 import Tabs from 'react-bootstrap/Tabs';
+
+import './Routes.css';
+
+import * as Icon from 'react-bootstrap-icons';
 
 import SEBracket from '../brackets/single elim/SEBracket';
 import RRBracket from "../brackets/round robin/RRBracket";
@@ -184,7 +189,8 @@ export default function Tournament(props: any) {
                 status: (jsonData.brackets[0]?.status || null),
                 bracketId: (jsonData.brackets[0]?.bracket_id || null),
                 tournamentId: (jsonData.brackets[0]?.tournament_id.toString() || null),
-                type: (jsonData.brackets[0]?.b_type || null)
+                type: (jsonData.brackets[0]?.b_type || null),
+                tournamentName: (jsonData.brackets[0]?.tournament_name || null)
             }
         });
 
@@ -288,9 +294,34 @@ export default function Tournament(props: any) {
             }}>
             <div className="p-3">
                 <div className="text-3xl">
-                    {/* {tournament?.tournament_name} */}
+                    {tourneyData?.tournamentName}
                 </div>
-                <div>
+                <div className="admin-controls">
+                    <div className="ac-block">Admin Controls</div>
+                    {tourneyData?.status != 'in_progress' && <div
+                        onClick={() => startHandler(tourneyData, setTourneyData, socket)}
+                        className="ac-button">
+                        <Icon.Play className="ac-icon" />Start Tournament
+                    </div>}
+                    <div
+                        onClick={() => handleReset(tourneyData, setTourneyData, socket, tid)}
+                        className="ac-button">
+                        <Icon.ArrowClockwise className="ac-icon" />Reset Matches
+                    </div>
+                    {tourneyData && tourneyData.status == 'upcoming' &&
+                    <div
+                        onClick={() => initHandler(tourneyData, socket)}
+                        className="ac-button">
+                        Initialize Tournament
+                    </div>}
+                    {tourneyData && (tourneyData.status == 'in_progress' || 'finished' || 'ready') &&
+                    <div onClick={handleClear}
+                        className="ac-button">
+                        <Icon.Eraser className="ac-icon" />Clear Tournament
+                    </div>
+                    }
+                </div>
+                <div className="tourney-tabs">
                     <Tabs
                         activeKey={tabValue}
                         id='tourney-tabs'
@@ -300,70 +331,52 @@ export default function Tournament(props: any) {
                         }}
                     >
                         <Tab eventKey='entrants' title='Entrants'>
-                            Entrants
+                            {tourneyData?.playerList && 
+                            <>
+                                <EntrantList />
+                                {!canSignUp?
+                                <>Register for the event to sign up for this tournament!</>
+                                    :
+                                (tourneyData?.status == 'upcoming' && <>{!isSignedUp? <Button onClick={handleSignup} >Sign Up</Button> : <Button onClick={handleSignup} >Remove Signup</Button>}</>)
+                                }
+                            </>
+                            }
                         </Tab>
                         <Tab eventKey='bracket' title='Bracket'>
-                            Bracket
+                            {tourneyData &&
+                                (tourneyData.type == 'single_elim' ?
+                                    <SEBracket />
+                                :
+                                (tourneyData.type == 'round_robin' ?
+                                    <RRBracket />
+                                :
+                                (tourneyData.type == 'double_elim' ?
+                                    <DEBracket />
+                                    :
+                                    <></>
+                                )))
+                            }
                         </Tab>
                         <Tab eventKey='standings' title='Standings'>
-                            Standings
+                            {tourneyData?.playerList && 
+                                <div>
+                                    {tourneyData.playerList.slice().sort((a: any, b: any) => {
+                                        return (a.placement - b.placement)
+                                    }).map((e: any, i: number) => {
+                                        return (
+                                            e.placement !== null?
+                                                <div key={i}>
+                                                    {e.placement}{'. '}{e.tag}
+                                                </div>
+                                                :
+                                                <span key={i}></span>
+                                        );
+                                    })}
+                                </div>
+                            }
                         </Tab>
                     </Tabs>
                 </div>
-                {tabValue == 'entrants' && tourneyData?.playerList? 
-                    <EntrantList />
-                : <></>}
-                {tabValue == 'standings' && tourneyData?.playerList?
-                    <div>Standings:
-                        {tourneyData.playerList.slice().sort((a: any, b: any) => {
-                            return (a.placement - b.placement)
-                        }).map((e: any, i: number) => {
-                            return (
-                                e.placement !== null?
-                                    <div key={i}>
-                                        {e.placement}{'. '}{e.tag}
-                                    </div>
-                                    :
-                                    <span key={i}></span>
-                            );
-                        })}
-                    </div>
-                :
-                <></>}
-                {!canSignUp?
-                    <>Register for the event to sign up for this tournament!</>
-                    :
-                    (tourneyData?.status == 'upcoming' && <>{!isSignedUp? <Button onClick={handleSignup} >Sign Up</Button> : <Button onClick={handleSignup} >Remove Signup</Button>}</>)
-                }
-                {tourneyData?.status != 'in_progress' && <div>
-                    <Button onClick={() => startHandler(tourneyData, setTourneyData, socket)}>Start Tournament</Button>
-                </div>}
-                <div>
-                    <Button onClick={() => handleReset(tourneyData, setTourneyData, socket, tid)}>Reset</Button>
-                </div>
-                {tourneyData && tourneyData.status == 'upcoming' && <div>
-                    <Button onClick={() => initHandler(tourneyData, socket)}>Initialize Tournament</Button>
-                </div>}
-                {tourneyData && (tourneyData.status == 'in_progress' || 'finished' || 'ready') &&
-                    <div>
-                        <Button onClick={handleClear}>Clear Tournament</Button>
-                    </div>
-                }
-                {tabValue == 'bracket' && tourneyData?
-                    (tourneyData.type == 'single_elim' ?
-                        <SEBracket />
-                    :
-                    (tourneyData.type == 'round_robin' ?
-                        <RRBracket />
-                    :
-                    (tourneyData.type == 'double_elim' ?
-                        <DEBracket />
-                        :
-                        <></>
-                    )))
-                    :
-                    <></>
-                }
             </div>
         </TourneyContext.Provider>
     );

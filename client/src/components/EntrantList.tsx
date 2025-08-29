@@ -65,7 +65,6 @@ export default function EntrantList(props: any) {
 
     return (
         <div>
-            Entrants:
             <DndContext
                 onDragEnd={handleDragEnd}
                 sensors={sensors}

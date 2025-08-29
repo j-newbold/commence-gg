@@ -8,6 +8,9 @@ import Form from 'react-bootstrap/Form';
 import Col from "react-bootstrap/Col";
 import Row from "react-bootstrap/Row";
 import ListGroup from "react-bootstrap/ListGroup";
+import './Routes.css';
+import {Tab, Tabs} from 'react-bootstrap';
+import * as Icon from 'react-bootstrap-icons';
 
 export default function Event(props: any) {
     const [event, setEvent] = useState<any>(null);
@@ -29,6 +32,7 @@ export default function Event(props: any) {
         eventId: id,
         winsNeeded: 2
     })
+    const [eventTabValue, setEventTabValue] = useState<any>('entrants');
 
     const navigate = useNavigate();
 
@@ -216,55 +220,69 @@ export default function Event(props: any) {
         <div className="p-3">
             {event?
             <div>
-                <div>{event.event_name}</div>
+                <div className="page-heading">{event.event_name}</div>
                 <div>{event.event_date}</div>
                 <div>{event.event_desc}</div>
-                <div>Entrants:
-                    <ListGroup>
-                        {entrants?.map((e: any, i: number) => {
-                            return (
-                                <ListGroup.Item key={i}>
-                                    {e.tag}
-                                </ListGroup.Item>
-                            );
-                        })}
-                    </ListGroup>
-                </div>
-                <div className="mb-3">Tournaments:
-                    <ListGroup>
-                        {tournaments?.map((e: any, i: number) => {
-                            return (
-                                <TournamentListing event={event}
-                                    tournament={e}
-                                    key={i}
-                                    canSignUp={isRegistered}
-                                    isAdmin={event && session && event.event_creator == session.user.id ? true : false}
-                                    deleteTournament={() => deleteTournament(e.tournament_id)}/>
-                            );
-                        })}
-                    </ListGroup>
+                {event && session && event.event_creator == session.user.id &&
+                    <div className="admin-controls">
+                        <div className="ac-block">Admin Controls</div>
+                        <div className="ac-button" onClick={() => setShowTourneyCreation(true)}>
+                            <Icon.Plus className="ac-icon" />Add Tournament
+                        </div>
+                        <div className="ac-button" onClick={toggleSignups}>
+                            {event.signups_open? <><Icon.Lock className="ac-icon"/>Close Signups</> : <><Icon.Unlock className="ac-icon"/>Open Signups</>}
+                        </div>
+                        <div className="ac-button" onClick={() => setShowWarning(true)}>
+                            <Icon.Trash className="ac-icon"/>Delete Event
+                        </div>
+                    </div>
+                }
+                <div className="event-tabs">
+                    <Tabs
+                        activeKey={eventTabValue}
+                        id='event-tabs'
+                        className="mb-3"
+                        onSelect={(e) => {
+                            setEventTabValue(e);
+                        }}
+                    >
+                        <Tab eventKey='entrants' title='Entrants'>
+                            <ListGroup>
+                                {entrants?.map((e: any, i: number) => {
+                                    return (
+                                        <ListGroup.Item key={i}>
+                                            {e.tag}
+                                        </ListGroup.Item>
+                                    );
+                                })}
+                            </ListGroup>
+                            {event.signups_open?
+                                <>{isRegistered?
+                                    <Button onClick={handleReg} className="btn btn-danger">Remove Signup</Button>
+                                    :
+                                    <Button onClick={handleReg}>Sign up</Button>
+                                }</>
+                                :
+                                <></>
+                            }
+                        </Tab>
+                        <Tab eventKey='tournaments' title='Tournaments'>
+                            <ListGroup>
+                                {tournaments?.map((e: any, i: number) => {
+                                    return (
+                                        <TournamentListing event={event}
+                                            tournament={e}
+                                            key={i}
+                                            canSignUp={isRegistered}
+                                            isAdmin={event && session && event.event_creator == session.user.id ? true : false}
+                                            deleteTournament={() => deleteTournament(e.tournament_id)}/>
+                                    );
+                                })}
+                            </ListGroup>
+                        </Tab>
+                    </Tabs>
                 </div>
                 
-                {event.signups_open?
-                    <>{isRegistered?
-                        <Button onClick={handleReg} className="btn btn-danger">Remove Signup</Button>
-                        :
-                        <Button onClick={handleReg}>Sign up</Button>
-                    }</>
-                    :
-                    <></>
-                }
-                {event && session && event.event_creator == session.user.id ?
-                    <>
-                        <Button onClick={() => setShowTourneyCreation(true)}>Add Tournament</Button>
-                        <Button onClick={toggleSignups}>
-                            {event.signups_open? <>Close Signups</> : <>Open Signups</>}
-                        </Button>
-                        <Button variant='danger' onClick={() => setShowWarning(true)}>Delete Event</Button>
-                    </>
-                    :
-                    <></>
-                }
                 <Modal show={showWarning} onHide={() => setShowWarning(false)}>
                     <Modal.Header closeButton>
                         <Modal.Title>Are You Sure?</Modal.Title>

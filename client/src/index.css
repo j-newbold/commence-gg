@@ -21,22 +21,16 @@
     }
 
     .main-panel {
-        @apply w-3/4 border border-gray-200 rounded-md shadow-md
-            h-screen justify-items-center;
+        @apply w-3/4 h-screen justify-items-center max-w-3xl;
     }
 
     .main-container {
         @apply flex flex-row justify-around;
     }
-
-    .profile-page {
-        @apply m-3
-    }
-
-    .profile-header {
-        @apply text-3xl
-    }
     
+    .full-navbar {
+        @apply bg-gray-200;
+    }
 }
 
 .btn {
@@ -236,7 +230,6 @@ body {
     padding-right: 20px;
     padding-left: 20px;
     min-width: 320px;
-    max-width: 800px;
     min-height: 100vh;
 }
 

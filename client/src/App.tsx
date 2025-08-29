@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import './App.css';
+import './index.css';
 import Navbar from 'react-bootstrap/Navbar';
 import Nav from 'react-bootstrap/Nav';
 import {NavDropdown} from 'react-bootstrap';
@@ -29,11 +29,6 @@ function App() {
 
     const { session } = useAuth();
 
-    const [numPlayers, setNumPlayers] = useState(7);
-    const [numLosses, setNumLosses] = useState(3);
-    const [bracketType, setBracketType] = useState<String>('Double Elimination');
-    const [bracketComponent, setBracketComponent] = useState((<div>No bracket to display</div>));
-
     const navigate = useNavigate();
 
     const handleLogout = async () => {
@@ -58,15 +53,15 @@ function App() {
 
     return (
         <>
-            <Navbar>
+            <Navbar className='full-navbar'>
                     <Nav className='top-nav'>
                         <Nav.Link className='top-nav-link left-link' as={Link} to='/'>Commence.GG</Nav.Link>
                         {session?
                             <>
                                 <Nav.Link className='top-nav-link right-link' as={Link} to='/createEvent'>Create Event</Nav.Link>
-                                <Nav.Link className='top-nav-link right-link' onClick={handleLogout}>Log out</Nav.Link>
-                                <NavDropdown title='Welcome, ' id='basic-nav-dropdown'>
-                                    <NavDropdown.Item href=''>Profile</NavDropdown.Item>
+                                <NavDropdown title='User Menu' id='basic-nav-dropdown' className='top-nav-link right-link'>
+                                    <NavDropdown.Item as={Link} to={`/profile/${session.user.id}`}>Profile</NavDropdown.Item>
+                                    <NavDropdown.Item onClick={handleLogout}>Log out</NavDropdown.Item>
                                 </NavDropdown>
                             </>:
                             <Nav.Link as={Link} className='top-nav-link right-link' to='/login'>Log in</Nav.Link>

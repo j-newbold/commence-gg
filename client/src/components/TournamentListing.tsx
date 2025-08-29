@@ -2,6 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import Button from 'react-bootstrap/Button';
 import ListGroup from "react-bootstrap/ListGroup";
+import './Components.css';
+import { Trash } from "react-bootstrap-icons";
 
 export default function TournamentListing(props:any) {
 
@@ -17,7 +19,9 @@ export default function TournamentListing(props:any) {
             onClick={() => renderTournament(props.event.event_id, props.tournament.tournament_id, props.canSignUp)}>
                 {props.tournament.tournament_name}
             </div>
-            {props.isAdmin? <Button variant='danger' onClick={props.deleteTournament}>Delete</Button> : <></>}
+            {props.isAdmin? <div className='delete-btn' onClick={props.deleteTournament}>
+                <Trash className="del-icon"/> Delete
+            </div> : <></>}
         </ListGroup.Item>
     );
 }

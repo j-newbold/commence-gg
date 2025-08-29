@@ -1,3 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+    .delete-btn {
+        @apply cursor-pointer;
+    }
+
+    .del-icon {
+        @apply inline-block;
+    }
+}
+
 .entrant-list {
     display: flex;
     flex-direction: row;

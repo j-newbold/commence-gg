@@ -124,7 +124,7 @@ router.get('/:id', async (req: Request, res: Response) => {
             where tent.tournament_id = ${id}
             ORDER BY tent.seed`;
 
-        var bracketInfo: any = await sql`SELECT b.bracket_id, b.tournament_id, b.b_type, b.wins_needed_default, t.status FROM brackets b
+        var bracketInfo: any = await sql`SELECT b.bracket_id, b.tournament_id, b.b_type, b.wins_needed_default, t.status, t.tournament_name FROM brackets b
             LEFT JOIN tournaments t
             ON b.tournament_id = t.tournament_id
             WHERE b.tournament_id = ${id}

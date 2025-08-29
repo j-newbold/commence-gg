@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { Outlet } from "react-router-dom";
 import LeftNav from '../leftnav/LeftNav';
-import '../../index.css';
+import './Routes.css';
 import { useParams } from "react-router-dom";
 import Button from "react-bootstrap/Button";
 import Form from 'react-bootstrap/Form';

@@ -59,6 +59,8 @@ export type SingleBracket = {
     tournamentId?: string | null;
 
     type?: string;
+
+    tournamentName?: string;
 }
 
 export type Entrant = {
