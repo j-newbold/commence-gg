@@ -8,7 +8,7 @@ import { TourneyContext } from "../../routes/Tournament.tsx";
 import { deSetMatchResults, upperBracketHeightAtPos } from './DEBracketFxns.tsx';
 import { numSERounds } from "../../../utils/misc.tsx";
 
-const offset = 450;
+const offset = 250;
 const matchSpacing = 125;
 const leftOffset = 215;
 const roundLabelHeight = 10;

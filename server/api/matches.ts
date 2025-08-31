@@ -48,8 +48,8 @@ router.post('/update', async (req: Request, res: Response) => {
         let plVals = [];
         if (req.body.matches.length < 1) return
 
-/*         console.log('matches:');
-        console.log(req.body.matches); */
+        console.log('matches:');
+        console.log(req.body.matches);
         
         for (var ma of req.body.matches) {
             values.push([(ma.p1?.uuid? ma.p1.uuid : null),

@@ -248,19 +248,29 @@ const setMatchRecursive: any = (matchCol: number,
 
         // lower bracket base case
         if (setWinnerAs?.uuid == findLBWinnerPlayer(matchCol, matchRow, tourneyData)?.uuid) {   // changed from seBracketFxns to account for both values being null
-            /* return [
-                [
-                    {
-                        ...tourneyData.roundList[matchCol][matchRow],
-                        winsP1: winsForP1,
-                        winsP2: winsForP2,
-                        winner: setWinnerAs,
-                        ...(newP1 != null && { p1: newP1 }),
-                        ...(newP2 != null && { p2: newP2 })
-                    }
-                ],
-                placementArr
-            ]; */
+            // do nothing
+            // UNLESS
+             if (!setWinnerAs && (curP1?.isHuman == false || curP2?.isHuman == false) && tourneyData.roundList[matchCol][matchRow].isBye) {
+                setWinnerAs = (curP1?.isHuman? curP1 : curP2);
+                // duplicate code
+                let nextMatchCol = matchCol+1;
+                let nextMatchRow = findLBWinnerRow(matchCol, matchRow, seLength);
+                let outToP1: boolean = lbOutputsToP1(matchCol, matchRow, seLength);
+                const winnerOutput: UpdateAction = (setWinnerAs? { type: 'set', value: setWinnerAs }: { type: 'reset' });
+                const passOutput: UpdateAction = { type: 'skip' };
+
+                console.log('setting winner of bye match');
+                recResultFirst = setMatchRecursive(nextMatchCol,
+                    nextMatchRow,
+                    0,
+                    0,
+                    null,
+                    (outToP1? winnerOutput : passOutput),
+                    (outToP1? passOutput : winnerOutput),
+                    tourneyData,
+                    placementSet
+            );
+            }
         } else {
             let nextMatchCol;
             let nextMatchRow;
@@ -480,8 +490,10 @@ export const deSetMatchResults: any = async (matchRow: number,
 
 export const deHandleStart = async (tourneyData: any, setTourneyData: any, socket: Socket) => {
     let playerListWithByes = [...tourneyData.playerList];
-    let maxLength = roundUpPower2(tourneyData.playerList.length/2);
-    while (playerListWithByes.length < maxLength) {
+    let maxPlayerSlots = roundUpPower2(tourneyData.playerList.length);
+    let hasByes: boolean = (maxPlayerSlots > tourneyData.playerList.length? true : false);
+
+    while (playerListWithByes.length < maxPlayerSlots) {
         let newBye: Entrant = {
             tag: 'Bye',
             isHuman: false,
@@ -493,23 +505,90 @@ export const deHandleStart = async (tourneyData: any, setTourneyData: any, socke
     }
     
     let seedOrder = createPlayerOrder(playerListWithByes.length);
-    let newMatches = tourneyData.roundList[0].slice(0,maxLength);
+    let newR1Matches = tourneyData.roundList[0].slice(0,maxPlayerSlots/2);
 
-    newMatches = newMatches.map((e: any, i: number): MatchObj => {
+    console.log('debug:');
+    console.log(seedOrder);
+    console.log(newR1Matches);
+
+    newR1Matches = newR1Matches.map((e: any, i: number): MatchObj => {
+        let newP1 = playerListWithByes[seedOrder[i*2]-1];
+        let newP2 = playerListWithByes[seedOrder[i*2+1]-1];
+
         return {
             ...e,
-            p1: playerListWithByes[seedOrder[i*2]-1],
-            p2: playerListWithByes[seedOrder[i*2+1]-1],
-            winner: null,
-            loser: null,
-            isBye: ( !playerListWithByes[seedOrder[i*2]-1].isHuman || !playerListWithByes[seedOrder[i*2+1]-1].isHuman)
+            p1: newP1,
+            p2: newP2,
+            winner: (newP1.isHuman == false? newP2 : (newP2.isHuman == false? newP1 : null)),
+            loser: (newP1.isHuman == false? newP1 : (newP2.isHuman == false? newP2 : null)),
+            isBye: (!playerListWithByes[seedOrder[i*2]-1].isHuman || !playerListWithByes[seedOrder[i*2+1]-1].isHuman)
         }
-    });
+    })
+
+    let newWR2Matches = null;
+    let newLR1Matches = null;
+    if (hasByes) { // if has byes, add byes to WR2 and LR1
+        // WR2
+        newWR2Matches = tourneyData.roundList[1].slice(0,maxPlayerSlots/4);
+        newWR2Matches = newWR2Matches.map((e: any, i: number) => {
+            if ((newR1Matches[i*2]).isBye) {
+                return {
+                    ...e,
+                    p1: newR1Matches[i*2].winner
+                }
+            } else if ((newR1Matches[i*2+1]).isBye) {
+                return {
+                    ...e,
+                    p2: newR1Matches[i*2+1].winner
+                }
+            } else {
+                return e
+            }
+        })
+        newWR2Matches = newWR2Matches.concat(tourneyData.roundList[1].slice(maxPlayerSlots/4));
+
+        newLR1Matches = tourneyData.roundList[0].slice(maxPlayerSlots/2);
+        newLR1Matches = newLR1Matches.map((e: any, i: number) => {
+            if ((newR1Matches[i*2]).isBye) {
+                return {
+                    ...e,
+                    p1: {
+                        tag: 'Bye',
+                        isHuman: false,
+                        placement: null,
+                        id: playerListWithByes.length+1,    // seed
+                        uuid: null
+                    },
+                    isBye: true
+                }
+            } else if ((newR1Matches[i*2+1]).isBye) {
+                return {
+                    ...e,
+                    p2: {
+                        tag: 'Bye',
+                        isHuman: false,
+                        placement: null,
+                        id: playerListWithByes.length+1,    // seed
+                        uuid: null
+                    },
+                    isBye: true
+                }
+            } else {
+                return e
+            }
+        });
+        newR1Matches = newR1Matches.concat(newLR1Matches);
+        console.log('newr1m');
+        console.log(newR1Matches);
+    } else {
+        newR1Matches = newR1Matches.concat(tourneyData.roundList[0].slice(maxPlayerSlots/2));
+    }
+
     setTourneyData((prev: SingleBracket): SingleBracket => {
         return {
             ...prev,
             playerList: prev.playerList?.map((e: any, i: number) => ({...e, placement: null})),
-            roundList: [[...newMatches, ...prev.roundList[0].slice(maxLength)], ...prev.roundList.slice(1)] // probably need to reset all matches and not just first row
+            roundList: [[...newR1Matches], [...(newWR2Matches? newWR2Matches : prev.roundList.slice(1,2))], ...prev.roundList.slice(2)] // probably need to reset all matches and not just first row
         }
     });
     const response = await fetch(import.meta.env.VITE_API_URL+`matches/update`, {
@@ -518,7 +597,7 @@ export const deHandleStart = async (tourneyData: any, setTourneyData: any, socke
         headers: {
             'content-type': 'application/json'
         }, body: JSON.stringify({
-            matches: newMatches
+            matches: [...newR1Matches, ...(newWR2Matches? newWR2Matches : [])]  // this may overwrite some redundant matches
         })
     });
     const [matchResp, plResp] = await response.json();

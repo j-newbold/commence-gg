@@ -27,12 +27,12 @@ export default function Match(props: any) {
         <>
             <div style={props.style} className="match-holder" onClick={() => setShowModal(true)} >
                 <div className="match-player-text match-player-holder-top">
-                    <div className="match-player-name">{curMatch?.p1?.tag || (curMatch.isBye? 'Bye' : 'Player 1')}</div>
+                    <div className="match-player-name">{curMatch?.p1? curMatch.p1.tag : 'Player 1'}</div>
                     <div className="match-game-wins">{curMatch?.winsP1}</div>
                 </div>
                 <div className="match-spacer"></div>
                 <div className="match-player-text match-player-holder-bot">
-                    <div className="match-player-name">{curMatch?.p2?.tag || (curMatch.isBye? 'Bye' : 'Player 2')}</div>
+                    <div className="match-player-name">{curMatch?.p2? curMatch.p2.tag : 'Player 2'}</div>
                     <div className="match-game-wins">{curMatch?.winsP2}</div>
                 </div>
             </div>
