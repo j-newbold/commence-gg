@@ -9,7 +9,7 @@ import { SingleBracket, MatchObj, Round, Player, RRPool, ElimBracket } from '../
 import { TourneyContext } from '../../routes/Tournament.tsx';
 import { seSetMatchResults } from './SEBracketFxns.tsx';
 
-const offset = 500;
+const offset = 250;
 const matchSpacing = 125;
 
 export default function SEBracket(props: any) {

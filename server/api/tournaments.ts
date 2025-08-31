@@ -136,7 +136,7 @@ router.get('/:id', async (req: Request, res: Response) => {
                 p1.tag p1_tag,
                 p2.id p2_id,
                 p2.tag p2_tag,
-            m.match_id, m.bracket_id, m.wins_needed, m.wins_p1, m.wins_p2, m.is_bye,
+            m.match_id, m.bracket_id, m.wins_needed, m.wins_p1, m.wins_p2, m.p1_type, m.p2_type,
                 m.winner_id,
                 tent1.seed p1_seed,
                 tent2.seed p2_seed
@@ -206,7 +206,8 @@ router.get('/:id', async (req: Request, res: Response) => {
                     winsNeeded: matchInfo[j].wins_needed,
                     winsP1: matchInfo[j].wins_p1,
                     winsP2: matchInfo[j].wins_p2,
-                    isBye: matchInfo[j].is_bye
+                    p1Type: matchInfo[j].p1_type,
+                    p2Type: matchInfo[j].p2_type,
                 }
                 if (matchInfo[j].m_col != prevCol) {
                     prevCol += 1;

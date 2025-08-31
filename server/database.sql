@@ -60,6 +60,8 @@ create TYPE bracket_type as ENUM ('double_elim', 'single_elim', 'round_robin');
 
 create TYPE tournament_status as ENUM ('upcoming', 'ready', 'in_progress', 'finished');
 
+create TYPE entrant_type as ENUM ('player', 'bye', 'empty');
+
 create table public.b_entrants (
     b_entrant_id SERIAL PRIMARY KEY,
 
@@ -121,6 +123,9 @@ create table public.matches (
     CONSTRAINT fk_p2_id
         FOREIGN KEY (p2_id)
         REFERENCES auth.users(id),
+
+    p1_type bracket_type DEFAULT 'empty' NOT NULL;
+    p2_type bracket_type DEFAULT 'empty' NOT NULL;
     
     winner_id uuid REFERENCES auth.users,
     CONSTRAINT fk_winner_id

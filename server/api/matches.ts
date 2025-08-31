@@ -15,7 +15,8 @@ router.post('/create', async (req: Request, res: Response) => {
                 (ma.winner? ma.winner.uuid : null),
                 ma.winsP1,
                 ma.winsP2,
-                ma.isBye,
+                ma.p1Type,
+                ma.p2Type,
                 ma.winsNeeded,
                 ma.matchRow,
                 ma.matchCol,
@@ -24,7 +25,7 @@ router.post('/create', async (req: Request, res: Response) => {
         }
 
         const data = await sql`
-            INSERT INTO matches (p1_id, p2_id, winner_id, wins_p1, wins_p2, is_bye,
+            INSERT INTO matches (p1_id, p2_id, winner_id, wins_p1, wins_p2, p1_type, p2_type,
                 wins_needed, m_row, m_col, bracket_id)
             VALUES ${sql(vals)}
             RETURNING match_id`;
@@ -48,8 +49,8 @@ router.post('/update', async (req: Request, res: Response) => {
         let plVals = [];
         if (req.body.matches.length < 1) return
 
-        console.log('matches:');
-        console.log(req.body.matches);
+        /* console.log('matches:');
+        console.log(req.body.matches); */
         
         for (var ma of req.body.matches) {
             values.push([(ma.p1?.uuid? ma.p1.uuid : null),
@@ -58,7 +59,8 @@ router.post('/update', async (req: Request, res: Response) => {
                 ma.matchId,
                 ma.winsP1,
                 ma.winsP2,
-                ma.isBye]);
+                ma.p1Type,
+                ma.p2Type]);
         }
         const data = await sql`
             UPDATE matches AS m
@@ -68,10 +70,11 @@ router.post('/update', async (req: Request, res: Response) => {
                 winner_id = (data.winner_id)::uuid,
                 wins_p1 = (data.wins_p1)::int,
                 wins_p2 = (data.wins_p2)::int,
-                is_bye = (data.is_bye)::boolean
+                p1_type = (data.p1_type)::entrant_type,
+                p2_type = (data.p2_type)::entrant_type
             FROM (
                 VALUES ${sql(values)}
-            ) AS data(p1_id, p2_id, winner_id, match_id, wins_p1, wins_p2, is_bye)
+            ) AS data(p1_id, p2_id, winner_id, match_id, wins_p1, wins_p2, p1_type, p2_type)
             WHERE m.match_id = (data.match_id)::int`;
 
 /*         console.log('placements');

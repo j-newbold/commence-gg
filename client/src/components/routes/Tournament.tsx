@@ -73,8 +73,6 @@ export default function Tournament(props: any) {
             })
 
             socket.on('placements updated', (placements) => {
-                console.log('pl update');
-                console.log(placements);
                 if (tourneyDataRef.current?.playerList) {
                     let newPlayerList = tourneyDataRef.current.playerList;
                     let placementMap = new Map();
@@ -93,7 +91,6 @@ export default function Tournament(props: any) {
             })
 
             socket.on('matches cleared', () => {
-                console.log('matches cleared!');
                 setTourneyData((prev: any) => ({
                     ...prev,
                     roundList: null,
@@ -151,8 +148,8 @@ export default function Tournament(props: any) {
 
     useEffect(() => {
         tourneyDataRef.current = tourneyData;
-        console.log('effect td:');
-        console.log(tourneyData);
+        /* console.log('effect td:');
+        console.log(tourneyData); */
         if (session && tourneyData?.playerList) {
             setIsSignedUp(tourneyData.playerList.some((e:any) => {
                 return session.user.id === e.uuid

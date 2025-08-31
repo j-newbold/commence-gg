@@ -19,12 +19,12 @@ export default function MatchModal(props: any) {
     return (
         <Modal show={props.showModal} onHide={(() => props.setShowModal(false))}>
                 <Modal.Header>
-                    <Modal.Title>{curMatch?.isBye.toString()}</Modal.Title>
+                    <Modal.Title>{'placeholder'}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
                     <div className="match-modal">
                         <div className="match-popup">
-                            <div className="match-popup-player-name">{curMatch?.p1?.tag || (curMatch.isBye? 'Bye' : 'Player 1')}</div>
+                            <div className="match-popup-player-name">{curMatch?.p1?.tag || (curMatch.p1Type == 'bye'? 'Bye' : 'Player 1')}</div>
                             <input
                                 className="game-wins"
                                 type='number'
@@ -34,7 +34,7 @@ export default function MatchModal(props: any) {
                         </div>
                         <div className="versus">vs</div>
                         <div className="match-popup">
-                            <div className="match-popup-player-name">{curMatch?.p2?.tag || (curMatch.isBye? 'Bye' : 'Player 2')}</div>
+                            <div className="match-popup-player-name">{curMatch?.p2?.tag || (curMatch.p2Type == 'bye'? 'Bye' : 'Player 2')}</div>
                             <input
                                 className="game-wins"
                                 type='number'

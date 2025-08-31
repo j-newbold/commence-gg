@@ -2,7 +2,7 @@ import { Socket } from 'socket.io-client';
 import { Player, SingleBracket, MatchObj, Entrant } from '../../../utils/types';
 import { createPlayerOrder } from '../../../utils/misc';
 import { Placeholder } from 'react-bootstrap';
-import { UpdateAction } from '../BracketTypes';
+import { UpdateAction, RecursiveResult } from '../BracketTypes';
 import { numSERounds } from '../../../utils/misc';
 
 
@@ -16,7 +16,8 @@ export const seHandleInit = async (tourneyData: any, socket: Socket) => {
                 winner: null,
                 winsP1: 0,
                 winsP2: 0,
-                isBye: false,
+                p1Type: 'empty',
+                p2Type: 'empty',
                 winsNeeded: tourneyData.winsNeeded,
                 matchCol: i,
                 matchRow: j/2,
@@ -77,25 +78,20 @@ const setMatchRecursive: any = (matchCol: number,
             placementArr.push(...addToPlacements(matchCol,curP2,curP1,seLength));
         }
     }
+
+    let recResult: RecursiveResult = [[],[]];
     
     // base case
-    if (matchCol == tourneyData.roundList.length-1 ||
+    if (matchCol == tourneyData.roundList.length-1) {
+        // do nothing
+    }  else if (
         (isEvenRow && setWinnerAs?.uuid == tourneyData.roundList[matchCol+1][Math.floor(matchRow/2)].p1?.uuid) ||
         (!isEvenRow && setWinnerAs?.uuid == tourneyData.roundList[matchCol+1][Math.floor(matchRow/2)].p2?.uuid)) {
-        return [[{...tourneyData.roundList[matchCol][matchRow],
-            winsP1: winsForP1,
-            winsP2: winsForP2,
-            winner: setWinnerAs,
-            ...((newP1.type == 'reset')? { p1: null } : (newP1.type == 'set' && {p1: newP1.value})),
-            ...((newP2.type == 'reset')? { p2: null } : (newP2.type == 'set' && {p2: newP2.value})),
-
-        }],
-        placementArr
-    ];
+        // do nothing, unless there's a bye, which currently there can't be
     } else {
         // recursion
         const winnerOutput: UpdateAction = (setWinnerAs? { type: 'set', value: setWinnerAs }: { type: 'reset' });
-        const recResult = setMatchRecursive(matchCol+1,
+        recResult = setMatchRecursive(matchCol+1,
             Math.floor(matchRow/2),
             0,
             0,
@@ -104,22 +100,21 @@ const setMatchRecursive: any = (matchCol: number,
             (isEvenRow? { type: 'skip' } : winnerOutput),
             tourneyData
         );
-        return [[{...tourneyData.roundList[matchCol][matchRow],
-            winsP1: winsForP1,
-            winsP2: winsForP2,
-            winner: setWinnerAs,
-            ...((newP1.type == 'reset')? { p1: null } : (newP1.type == 'set' && {p1: newP1.value})),
-            ...((newP2.type == 'reset')? { p2: null } : (newP2.type == 'set' && {p2: newP2.value})),
-        }, ...(recResult[0])],
-        [...placementArr, ...(recResult[1])]];
     }
+    return [[{...tourneyData.roundList[matchCol][matchRow],
+        winsP1: winsForP1,
+        winsP2: winsForP2,
+        winner: setWinnerAs,
+        ...((newP1.type == 'reset')? { p1: null } : (newP1.type == 'set' && {p1: newP1.value})),
+        ...((newP2.type == 'reset')? { p2: null } : (newP2.type == 'set' && {p2: newP2.value})),
+        ...(newP1.type == 'reset'? { p1Type: 'empty' } : (newP1.type == 'set' && (newP1.value.isHuman? {p1Type: 'player'} : {p1Type: 'bye'}))),
+        ...(newP2.type == 'reset'? { p2Type: 'empty' } : (newP2.type == 'set' && (newP2.value.isHuman? {p2Type: 'player'} : {p2Type: 'bye'}))),
+    }, ...(recResult[0])],
+    [...placementArr, ...(recResult[1])]];
 }
 
 function addToPlacements(matchCol: number, winner: Entrant | null, loser: Entrant | null, seLength: number) {
     let ret = [];
-    console.log('add to placements:');
-    console.log(winner);
-    console.log(loser);
     if (winner && loser && matchCol == seLength-1) {
         ret.push({
             ...winner,
@@ -200,7 +195,9 @@ export const seHandleStart = async (tourneyData: any, setTourneyData: any, socke
         console.log('too many players for this bracket');
     } else {
         let playerListWithByes = [...tourneyData.playerList];
+        let hasByes: boolean = false;
         while (Math.floor(Math.log2(playerListWithByes.length)) != Math.log2(playerListWithByes.length)) {
+            hasByes = true;
             // will need to be fixed, probably should be null
             let newBye: Entrant = {
                 tag: 'Bye',
@@ -216,20 +213,45 @@ export const seHandleStart = async (tourneyData: any, setTourneyData: any, socke
 
         newMatches = newMatches.map((e: any, i: number): MatchObj => {
             //console.log(!playerListWithByes[seedOrder[i*2]-1].player.isHuman || !playerListWithByes[seedOrder[i*2+1]-1].player.isHuman);
+            var newMP1 = playerListWithByes[seedOrder[i*2]-1];
+            var newMP2 = playerListWithByes[seedOrder[i*2+1]-1];
             return {
                 ...e,
-                p1: playerListWithByes[seedOrder[i*2]-1],
-                p2: playerListWithByes[seedOrder[i*2+1]-1],
-                winner: null,
-                loser: null,
-                isBye: ( !playerListWithByes[seedOrder[i*2]-1].isHuman || !playerListWithByes[seedOrder[i*2+1]-1].isHuman)
+                p1: newMP1,
+                p2: newMP2,
+                winner: (!newMP1.isHuman? newMP2 : (!newMP2.isHuman? newMP1 : null)),
+                loser: (!newMP1.isHuman? newMP1 : (!newMP2.isHuman? newMP2 : null)),
+                p1Type: (newMP1.isHuman? 'player' : 'bye'),
+                p2Type: (newMP2.isHuman? 'player' : 'bye')
             }
         });
+        let newR2Matches = null;
+        if (hasByes) {
+            newR2Matches = tourneyData.roundList[1].slice();
+            newR2Matches = newR2Matches.map((e: any, i: number) => {
+                if (newMatches[i*2].p1Type == 'bye' || newMatches[i*2].p2Type == 'bye') {
+                    return {
+                        ...e,
+                        p1: newMatches[i*2].winner,
+                        p1Type: 'player'
+                    }
+                } else if (newMatches[i*2+1].p1Type == 'bye' || newMatches[i*2+1].p2Type == 'bye') {
+                    return {
+                        ...e,
+                        p2: newMatches[i*2+1].winner,
+                        p2Type: 'player'
+                    }
+                } else {
+                    return e;
+                }
+            })
+        }
+
         setTourneyData((prev: SingleBracket): SingleBracket => {
             return {
                 ...prev,
                 playerList: prev.playerList?.map((e: any, i: number) => ({...e, placement: null})),
-                roundList: [newMatches, ...prev.roundList.slice(1)] // probably need to reset all matches and not just first row
+                roundList: [newMatches, [...(newR2Matches? newR2Matches : prev.roundList.slice(1,2))] , ...prev.roundList.slice(2)] // probably need to reset all matches and not just first row
             }
         });
         

@@ -1,17 +1,9 @@
 import { Socket } from 'socket.io-client';
 import { Player, SingleBracket, MatchObj, Entrant } from '../../../utils/types';
 import { createPlayerOrder, numSERounds, roundUpPower2 } from '../../../utils/misc';
-import { UpdateAction } from '../BracketTypes';
-
-
-type RecursiveResult =
-    [
-        MatchObj[],
-        Entrant[]
-    ];
+import { UpdateAction, RecursiveResult } from '../BracketTypes';
 
 export const deHandleInit = async (tourneyData: any, socket: Socket) => {
-    console.log('initializing tournament');
     let mList: MatchObj[] = [];
 
     let halveLosersMatches = false;
@@ -27,7 +19,8 @@ export const deHandleInit = async (tourneyData: any, socket: Socket) => {
                 winner: null,
                 winsP1: 0,
                 winsP2: 0,
-                isBye: false,
+                p1Type: 'empty',
+                p2Type: 'empty',
                 winsNeeded: tourneyData.winsNeeded,
                 matchCol: i,
                 matchRow: j,
@@ -42,7 +35,8 @@ export const deHandleInit = async (tourneyData: any, socket: Socket) => {
                 winner: null,
                 winsP1: 0,
                 winsP2: 0,
-                isBye: false,
+                p1Type: 'empty',
+                p2Type: 'empty',
                 winsNeeded: tourneyData.winsNeeded,
                 matchCol: i,
                 matchRow: ((i == numSERounds(tourneyData.playerList.length) || i == (numSERounds(tourneyData.playerList.length)+1))? 1+k : j+k),
@@ -63,7 +57,8 @@ export const deHandleInit = async (tourneyData: any, socket: Socket) => {
         winner: null,
         winsP1: 0,
         winsP2: 0,
-        isBye: false,
+        p1Type: 'empty',
+        p2Type: 'empty',
         winsNeeded: tourneyData.winsNeeded,
         matchCol: numSERounds(tourneyData.playerList.length),
         matchRow: 0,
@@ -77,7 +72,8 @@ export const deHandleInit = async (tourneyData: any, socket: Socket) => {
         winner: null,
         winsP1: 0,
         winsP2: 0,
-        isBye: false,
+        p1Type: 'empty',
+        p2Type: 'empty',
         winsNeeded: tourneyData.winsNeeded,
         matchCol: numSERounds(tourneyData.playerList.length)+1,
         matchRow: 0,
@@ -250,7 +246,7 @@ const setMatchRecursive: any = (matchCol: number,
         if (setWinnerAs?.uuid == findLBWinnerPlayer(matchCol, matchRow, tourneyData)?.uuid) {   // changed from seBracketFxns to account for both values being null
             // do nothing
             // UNLESS
-             if (!setWinnerAs && (curP1?.isHuman == false || curP2?.isHuman == false) && tourneyData.roundList[matchCol][matchRow].isBye) {
+             if (!setWinnerAs && (tourneyData.roundList[matchCol][matchRow].p1Type == 'bye' || tourneyData.roundList[matchCol][matchRow].p2Type == 'bye')) {
                 setWinnerAs = (curP1?.isHuman? curP1 : curP2);
                 // duplicate code
                 let nextMatchCol = matchCol+1;
@@ -259,7 +255,6 @@ const setMatchRecursive: any = (matchCol: number,
                 const winnerOutput: UpdateAction = (setWinnerAs? { type: 'set', value: setWinnerAs }: { type: 'reset' });
                 const passOutput: UpdateAction = { type: 'skip' };
 
-                console.log('setting winner of bye match');
                 recResultFirst = setMatchRecursive(nextMatchCol,
                     nextMatchRow,
                     0,
@@ -309,20 +304,6 @@ const setMatchRecursive: any = (matchCol: number,
             if (((setWinnerAs == null || setWinnerAs?.uuid == curP1?.uuid) && tourneyData.roundList[seLength+1][0].p1 == null) ||
                 (setWinnerAs?.uuid == curP2?.uuid && tourneyData.roundList[seLength+1][0].p1 != null)) {
                 // moved return statement below
-
-                /* return [
-                    [
-                        {
-                            ...tourneyData.roundList[matchCol][matchRow],
-                            winsP1: winsForP1,
-                            winsP2: winsForP2,
-                            winner: setWinnerAs,
-                            ...(newP1 != null && { p1: newP1 }),
-                            ...(newP2 != null && { p2: newP2 })
-                        }
-                    ],
-                    placementArr
-                ]; */
             } else {
                 if (setWinnerAs == null || setWinnerAs?.uuid == curP1?.uuid) {
                     // reset gf2
@@ -389,6 +370,8 @@ const setMatchRecursive: any = (matchCol: number,
                 winner: setWinnerAs,
                 ...((newP1.type == 'reset')? { p1: null } : (newP1.type == 'set' && {p1: newP1.value})),
                 ...((newP2.type == 'reset')? { p2: null } : (newP2.type == 'set' && {p2: newP2.value})),
+                ...(newP1.type == 'reset'? {p1Type: 'empty'} : (newP1.type == 'set' && (newP1.value.isHuman? {p1Type: 'player'} : {p1Type: 'bye'}))),
+                ...(newP2.type == 'reset'? {p2Type: 'empty'} : (newP2.type == 'set' && (newP2.value.isHuman? {p2Type: 'player'} : {p2Type: 'bye'}))),
             },
             ...(recResultFirst? recResultFirst[0] : []),    // could do null at the end of these lines instead of []
             ...(recResultSecond? recResultSecond[0] : [])
@@ -452,14 +435,11 @@ export const deSetMatchResults: any = async (matchRow: number,
             placementSet.add(iteratee.uuid);
             memo.push(iteratee);
         } else {
-            console.log('duplicate found');
+            console.log('duplicate found'); // should not trigger and therefore should be removed eventually
         }
 
         return memo;
     }, []);
-
-    console.log('new matches:');
-    console.log(newMatches);
 
     const response = await fetch(import.meta.env.VITE_API_URL+`matches/update`, {
         method: 'POST',
@@ -507,10 +487,6 @@ export const deHandleStart = async (tourneyData: any, setTourneyData: any, socke
     let seedOrder = createPlayerOrder(playerListWithByes.length);
     let newR1Matches = tourneyData.roundList[0].slice(0,maxPlayerSlots/2);
 
-    console.log('debug:');
-    console.log(seedOrder);
-    console.log(newR1Matches);
-
     newR1Matches = newR1Matches.map((e: any, i: number): MatchObj => {
         let newP1 = playerListWithByes[seedOrder[i*2]-1];
         let newP2 = playerListWithByes[seedOrder[i*2+1]-1];
@@ -521,7 +497,8 @@ export const deHandleStart = async (tourneyData: any, setTourneyData: any, socke
             p2: newP2,
             winner: (newP1.isHuman == false? newP2 : (newP2.isHuman == false? newP1 : null)),
             loser: (newP1.isHuman == false? newP1 : (newP2.isHuman == false? newP2 : null)),
-            isBye: (!playerListWithByes[seedOrder[i*2]-1].isHuman || !playerListWithByes[seedOrder[i*2+1]-1].isHuman)
+            p1Type: (newP1.isHuman? 'player' : 'bye'),
+            p2Type: (newP2.isHuman? 'player' : 'bye')
         }
     })
 
@@ -531,15 +508,17 @@ export const deHandleStart = async (tourneyData: any, setTourneyData: any, socke
         // WR2
         newWR2Matches = tourneyData.roundList[1].slice(0,maxPlayerSlots/4);
         newWR2Matches = newWR2Matches.map((e: any, i: number) => {
-            if ((newR1Matches[i*2]).isBye) {
+            if (newR1Matches[i*2].p1Type == 'bye' || newR1Matches[i*2].p2Type == 'bye') {
                 return {
                     ...e,
-                    p1: newR1Matches[i*2].winner
+                    p1: newR1Matches[i*2].winner,
+                    p1Type: 'player'
                 }
-            } else if ((newR1Matches[i*2+1]).isBye) {
+            } else if (newR1Matches[i*2+1].p1Type == 'bye' || newR1Matches[i*2+1].p2Type == 'bye') {
                 return {
                     ...e,
-                    p2: newR1Matches[i*2+1].winner
+                    p2: newR1Matches[i*2+1].winner,
+                    p2Type: 'player'
                 }
             } else {
                 return e
@@ -549,7 +528,7 @@ export const deHandleStart = async (tourneyData: any, setTourneyData: any, socke
 
         newLR1Matches = tourneyData.roundList[0].slice(maxPlayerSlots/2);
         newLR1Matches = newLR1Matches.map((e: any, i: number) => {
-            if ((newR1Matches[i*2]).isBye) {
+            if (newR1Matches[i*2].p1Type == 'bye' || newR1Matches[i*2].p2Type == 'bye') {
                 return {
                     ...e,
                     p1: {
@@ -559,9 +538,9 @@ export const deHandleStart = async (tourneyData: any, setTourneyData: any, socke
                         id: playerListWithByes.length+1,    // seed
                         uuid: null
                     },
-                    isBye: true
+                    p1Type: 'bye'
                 }
-            } else if ((newR1Matches[i*2+1]).isBye) {
+            } else if (newR1Matches[i*2+1].p1Type == 'bye' ||  newR1Matches[i*2+1].p2Type == 'bye') {
                 return {
                     ...e,
                     p2: {
@@ -571,15 +550,13 @@ export const deHandleStart = async (tourneyData: any, setTourneyData: any, socke
                         id: playerListWithByes.length+1,    // seed
                         uuid: null
                     },
-                    isBye: true
+                    p2Type: 'bye'
                 }
             } else {
                 return e
             }
         });
         newR1Matches = newR1Matches.concat(newLR1Matches);
-        console.log('newr1m');
-        console.log(newR1Matches);
     } else {
         newR1Matches = newR1Matches.concat(tourneyData.roundList[0].slice(maxPlayerSlots/2));
     }

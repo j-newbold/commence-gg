@@ -46,7 +46,8 @@ export const rrHandleInit = async (tourneyData: any, socket: Socket) => {
                 winner: null,
                 winsP1: 0,
                 winsP2: 0,
-                isBye: false,
+                p1Type: 'empty',
+                p2Type: 'empty',
                 winsNeeded: tourneyData.winsNeeded,
                 matchCol: i,
                 matchRow: j,
@@ -170,7 +171,8 @@ export const rrHandleStart = async (tourneyData: any, setTourneyData: any, socke
                 p2: tourneyData.playerList[j+i+1],
                 winner: null,
                 loser: null,
-                isBye: false
+                p1Type: 'player',
+                p2Type: 'player'
             };
         })
     })

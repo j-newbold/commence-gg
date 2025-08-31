@@ -33,7 +33,8 @@ export type MatchObj = {
     matchCol?: number;
     matchRow?: number;
 
-    isBye?: boolean;
+    p1Type?: string;
+    p2Type?: string;
 
     bracketId?: number;
 
