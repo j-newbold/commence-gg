@@ -30,18 +30,6 @@ router.post('/create', async (req: Request, res: Response) => {
     }
 })
 
-/* router.post('/:id/setStatus', async (req: Request, res: Response) => {
-    try {
-        const { id } = req.params;
-
-        await sql`UPDATE tournaments
-            SET status = ${req.body.newStatus}
-            WHERE tournament_id = ${id}`;
-    } catch (error) {
-        console.log(error);
-    }
-}) */
-
 router.post('/:id/resetStandings', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;

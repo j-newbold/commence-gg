@@ -1,4 +1,4 @@
-import { Player, SingleBracket, ElimBracket, Round, MatchObj, FinalsMatchObj } from './types.tsx';
+/* import { Player, SingleBracket, ElimBracket, Round, MatchObj, FinalsMatchObj } from './types.tsx';
 import { randStr, createPlayerOrder, sumBooleans } from './misc.tsx';
 import { RRPool, RRMatchObj } from './types.tsx';
 import RRMatch from '../components/RRMatch.tsx';
@@ -178,4 +178,4 @@ export const createElimBracket = (numPlayers: number, lossesToElim: number) => {
 
 
     return newElimBracket;
-}
+} */

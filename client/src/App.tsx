@@ -10,8 +10,6 @@ import Match from './components/Match.tsx';
 import Dropdown from 'react-bootstrap/Dropdown';
 import { ElimBracket, MatchObj, Round, Player, RRPool } from './utils/types.tsx';
 import SEBracket from './components/brackets/single elim/SEBracket.tsx';
-import { createElimBracket, createRRPool } from './utils/initBrackets.tsx';
-import RRPoolComponent from './components/brackets/RRPool.tsx';
 import { createClient } from '@supabase/supabase-js'
 import { ThemeSupa } from '@supabase/auth-ui-shared'
 import { Auth } from '@supabase/auth-ui-react'
@@ -38,18 +36,6 @@ function App() {
 
     useEffect(() => {
     }, []);
-
-    const onSubmitForm = async (e: any) => {
-        e.preventDefault();
-        try {
-            console.log('submitting form');
-            const response = await fetch("http://localhost:5000/");
-            const data = await response.json();
-            console.log(data);
-        } catch (err: any) {
-            console.error(err.message);
-        }
-    }
 
     return (
         <>
