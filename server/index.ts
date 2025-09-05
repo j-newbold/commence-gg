@@ -1,7 +1,6 @@
 const { supabase } = require("./utils/supabaseClient");
 import { Request, Response } from 'express';
 import { createServer } from 'node:http';
-import sql from './db';
 
 import { Server } from "socket.io";
 
