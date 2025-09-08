@@ -13,7 +13,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 dotenv.config();
 const corsOptions = {
-    origin: process.env.ORIGIN, // Change to your frontend's URL
+    origin: process.env.ORIGIN,
     methods: ["POST", "GET", "DELETE", "PUT"],
     credentials: true // Allow credentials (cookies, authorization headers, etc.)
 };
@@ -89,6 +89,6 @@ io.on('connection', async (socket) => {
     
 });
 
-server.listen(5000, () => {
+server.listen(5000, '0.0.0.0', () => {
     console.log('server has started on port 5000');
 })
