@@ -1,9 +1,6 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { supabase } = require("../utils/supabaseClient");
 import { Request, Response } from 'express';
-
-import sql from '../db';
 
 router.post('/', async (req: Request, res: Response) => {
     try {
@@ -13,4 +10,4 @@ router.post('/', async (req: Request, res: Response) => {
     }
 })
 
-module.exports = router;
+export default router;

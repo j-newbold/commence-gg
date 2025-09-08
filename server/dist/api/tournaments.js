@@ -1,62 +1,51 @@
 import express from 'express';
 const router = express.Router();
-import { Request, Response } from 'express';
-
 import sql from '../db.js';
-
-router.post('/create', async (req: Request, res: Response) => {
+router.post('/create', async (req, res) => {
     try {
-        const data = await sql`INSERT INTO tournaments
+        const data = await sql `INSERT INTO tournaments
             (event_id, tournament_name, status)
             VALUES (${req.body.eventId}, ${req.body.name}, 'upcoming')
             RETURNING event_id, tournament_id, tournament_name`;
-            
-        const bData = await sql`INSERT INTO brackets
+        const bData = await sql `INSERT INTO brackets
             (tournament_id, b_type, wins_needed_default)
             VALUES (${data[0].tournament_id}, ${req.body.type}, ${req.body.winsNeeded})
             RETURNING b_type, wins_needed_default`;
-
-        const respData = 
-        res.status(200).json({
+        const respData = res.status(200).json({
             eventId: data[0].event_id,
             tournamentId: data[0].tournament_id,
             name: data[0].tournament_name,
             type: bData[0].b_type,
             winsNeeded: bData[0].wins_needed_default
         });
-    } catch (error) {
+    }
+    catch (error) {
         console.log(error);
     }
-})
-
-router.post('/:id/resetStandings', async (req: Request, res: Response) => {
+});
+router.post('/:id/resetStandings', async (req, res) => {
     try {
         const { id } = req.params;
-
-        await sql`UPDATE t_entrants
+        await sql `UPDATE t_entrants
             SET placement = null
             WHERE tournament_id = ${id}`;
-
         res.status(200).send();
-    } catch (error) {
+    }
+    catch (error) {
         console.log(error);
     }
-})
-
-router.post('/:id/saveSeeding', async (req: Request, res: Response) => {
+});
+router.post('/:id/saveSeeding', async (req, res) => {
     try {
         const { id } = req.params;
-
         let vals = [];
-
         for (var pl of req.body.players) {
             vals.push([
                 pl.id,
                 pl.uuid
             ]);
         }
-
-        await sql`UPDATE t_entrants tent
+        await sql `UPDATE t_entrants tent
         SET
             seed = (data.new_seed)::int
         FROM (
@@ -64,61 +53,57 @@ router.post('/:id/saveSeeding', async (req: Request, res: Response) => {
         ) AS data(new_seed, user_id)
         WHERE tent.user_id = (data.user_id)::uuid
         AND tournament_id = ${id}`;
-
         res.sendStatus(200);
-    } catch (error) {
+    }
+    catch (error) {
         console.log(error);
     }
-})
-
-router.delete('/clear/:id', async (req: Request, res: Response) => {
+});
+router.delete('/clear/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const data = await sql`DELETE FROM matches m
+        const data = await sql `DELETE FROM matches m
             WHERE m.bracket_id =
             (SELECT b.bracket_id from brackets b
                 WHERE b.tournament_id = ${id})`;
-        const data2 = await sql`UPDATE tournaments
+        const data2 = await sql `UPDATE tournaments
             SET status = 'upcoming'
             WHERE tournament_id = ${id}`;
-        const data3 = await sql`UPDATE t_entrants
+        const data3 = await sql `UPDATE t_entrants
             SET placement = null
             WHERE tournament_id = ${id}`;
         res.sendStatus(200);
-    } catch (error) {
+    }
+    catch (error) {
         console.log(error);
     }
-})
-
-router.delete('/:id', async (req: Request, res: Response) => {
+});
+router.delete('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const data = await sql`DELETE FROM tournaments t
+        const data = await sql `DELETE FROM tournaments t
             WHERE t.tournament_id = ${id}`;
         res.sendStatus(200);
-    } catch (error) {
+    }
+    catch (error) {
         console.log(error);
     }
-})
-
-router.get('/:id', async (req: Request, res: Response) => {
+});
+router.get('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-
-        const entrants = await sql`SELECT p.tag, p.id, tent.placement, tent.seed from profiles p
+        const entrants = await sql `SELECT p.tag, p.id, tent.placement, tent.seed from profiles p
             left join t_entrants tent
             on p.id = tent.user_id
             where tent.tournament_id = ${id}
             ORDER BY tent.seed`;
-
-        var bracketInfo: any = await sql`SELECT b.bracket_id, b.tournament_id, b.b_type, b.wins_needed_default, t.status, t.tournament_name FROM brackets b
+        var bracketInfo = await sql `SELECT b.bracket_id, b.tournament_id, b.b_type, b.wins_needed_default, t.status, t.tournament_name FROM brackets b
             LEFT JOIN tournaments t
             ON b.tournament_id = t.tournament_id
             WHERE b.tournament_id = ${id}
             ORDER BY b.bracket_id`;
-
         // will need to add winner tag as well
-        const matchInfo = await sql`SELECT m.m_row, m.m_col,
+        const matchInfo = await sql `SELECT m.m_row, m.m_col,
                 p1.id p1_id,
                 p1.tag p1_tag,
                 p2.id p2_id,
@@ -147,38 +132,34 @@ router.get('/:id', async (req: Request, res: Response) => {
             WHERE b.tournament_id = ${id}
             ORDER BY b.bracket_id ASC, m.m_col ASC, m.m_row ASC`;
         //let bracketList: any[] = [];
-
         let bracketMap = new Map();
-        let newBracketInfo: any;
-
+        let newBracketInfo;
         let curBracket = -1;
         let j = 0;
-
-        for (let i=0;i<bracketInfo.length;i++) {
+        for (let i = 0; i < bracketInfo.length; i++) {
             if (curBracket != bracketInfo[i].bracket_id) {
                 curBracket = bracketInfo[i].bracket_id;
             }
-
             let newRoundList = [];
             let prevCol = -1;
             while (j < matchInfo.length && matchInfo[j].bracket_id == curBracket) {
                 let newData = {
                     matchCol: matchInfo[j].m_col,
                     matchRow: matchInfo[j].m_row,
-                    p1: (matchInfo[j].p1_tag? {
+                    p1: (matchInfo[j].p1_tag ? {
                         tag: matchInfo[j].p1_tag,
                         uuid: matchInfo[j].p1_id,
                         isHuman: true,
                         id: matchInfo[j].p1_seed
                     } : null),
-                    p2: (matchInfo[j].p2_tag? {
+                    p2: (matchInfo[j].p2_tag ? {
                         tag: matchInfo[j].p2_tag,
                         uuid: matchInfo[j].p2_id,
                         isHuman: true,
                         id: matchInfo[j].p2_seed
                     } : null),
                     matchId: matchInfo[j].match_id,
-                    winner: (matchInfo[j].winner_id? (matchInfo[j].winner_id == matchInfo[j].p1_id? {
+                    winner: (matchInfo[j].winner_id ? (matchInfo[j].winner_id == matchInfo[j].p1_id ? {
                         tag: matchInfo[j].p1_tag,
                         uuid: matchInfo[j].p1_id,
                         isHuman: true,
@@ -195,69 +176,64 @@ router.get('/:id', async (req: Request, res: Response) => {
                     winsP2: matchInfo[j].wins_p2,
                     p1Type: matchInfo[j].p1_type,
                     p2Type: matchInfo[j].p2_type,
-                }
+                };
                 if (matchInfo[j].m_col != prevCol) {
                     prevCol += 1;
-                    newRoundList.push(<any>[]);
+                    newRoundList.push([]);
                 }
                 newRoundList.at(-1).push(newData);
-
                 j++;
             }
-
             newBracketInfo = { ...bracketInfo[i],
                 roundList: newRoundList
             };
-
             bracketMap.set(bracketInfo[i].bracket_id, newBracketInfo);
-
         }
-
         res.json({
             entrants: entrants,
             brackets: Array.from(bracketMap.values()),
         });
-    } catch (error) {
+    }
+    catch (error) {
         console.log(error);
     }
-})
-
-router.get('/:id/entrants', async (req: Request, res: Response) => {
+});
+router.get('/:id/entrants', async (req, res) => {
     try {
         const { id } = req.params;
-        const data = await sql`select p.tag, p.id, tent.seed from profiles p
+        const data = await sql `select p.tag, p.id, tent.seed from profiles p
             left join t_entrants tent
             on p.id = tent.user_id
             where tent.tournament_id = ${id}`;
         res.json(data);
-    } catch (error) {
+    }
+    catch (error) {
         console.log(error);
     }
-})
-
-router.post('/:id/signup/:userid', async (req: Request, res: Response) => {
+});
+router.post('/:id/signup/:userid', async (req, res) => {
     const { id, userid } = req.params;
     try {
-        const data = await sql`insert into t_entrants (tournament_id, user_id, seed)
+        const data = await sql `insert into t_entrants (tournament_id, user_id, seed)
             values (${req.body.tournamentId}, ${req.body.userId}, ${req.body.seed})`;
-        const retData = await sql`select p.tag, p.id from profiles p
+        const retData = await sql `select p.tag, p.id from profiles p
             where p.id = ${req.body.userId}`;
         res.status(200).json(retData[0]);
-    } catch (error) {
+    }
+    catch (error) {
         console.log(error);
     }
-})
-
-router.delete('/:id/signup/:userid', async (req: Request, res: Response) => {
+});
+router.delete('/:id/signup/:userid', async (req, res) => {
     const { id, userid } = req.params;
     try {
-        const data = await sql`delete from t_entrants
+        const data = await sql `delete from t_entrants
             where user_id = ${req.body.userId}
             and tournament_id = ${req.body.tournamentId}`;
         res.sendStatus(200);
-    } catch (error) {
+    }
+    catch (error) {
         console.log(error);
     }
-})
-
+});
 export default router;
