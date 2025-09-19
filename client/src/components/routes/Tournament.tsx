@@ -23,7 +23,7 @@ import { handleReset } from "../../utils/miscBracketFxns";
 import DEBracket from "../brackets/double elim/DEBracket";
 import EntrantList from "../EntrantList";
 
-const socket = io(import.meta.env.VITE_API_URL);
+const socket = io(import.meta.env.VITE_WS_URL);
 
 export const TourneyContext: any = createContext<
 {
@@ -91,6 +91,7 @@ export default function Tournament(props: any) {
             })
 
             socket.on('matches cleared', () => {
+                console.log('matches cleared');
                 setTourneyData((prev: any) => ({
                     ...prev,
                     roundList: null,
@@ -105,6 +106,7 @@ export default function Tournament(props: any) {
             })
 
             socket.on('match list created', (matches) => {
+                console.log('matches created');
                 let newRoundList: any[][] = [];
                 let prevCol = -1;
                 let newFinals = null;

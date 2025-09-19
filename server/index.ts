@@ -84,8 +84,6 @@ io.on('connection', async (socket) => {
     socket.on('tourney status updated', async ([newStatus, id]) => {
         io.to(id).emit('tourney status updated', newStatus);
     })
-
-    //handleTournamentSockets(socket);
     
 });
 
