@@ -23,7 +23,10 @@ import { handleReset } from "../../utils/miscBracketFxns";
 import DEBracket from "../brackets/double elim/DEBracket";
 import EntrantList from "../EntrantList";
 
-const socket = io(import.meta.env.VITE_WS_URL);
+const socket = io(import.meta.env.VITE_WS_URL, {
+    path: import.meta.env.VITE_SOCKET_PATH,
+    transports: ["websocket", "polling"]
+});
 
 export const TourneyContext: any = createContext<
 {
