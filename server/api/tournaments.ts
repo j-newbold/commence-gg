@@ -1,11 +1,21 @@
 import express from 'express';
 const router = express.Router();
 import { Request, Response } from 'express';
+import { authMiddleware } from 'utils/authMiddleware.js';
 
 import sql from '../db.js';
 
-router.post('/create', async (req: Request, res: Response) => {
+router.post('/create', authMiddleware, async (req: Request, res: Response) => {
     try {
+        const userId = req.body.id;
+
+        // duplicated code
+        const checkOwner = await sql`SELECT event_creator FROM events e
+            WHERE e.event_id = ${req.body.eventId} LIMIT 1`;
+        if (userId != checkOwner[0].event_creator) {
+            res.status(401).json({ error: "Unauthorized" })
+        }
+        
         const data = await sql`INSERT INTO tournaments
             (event_id, tournament_name, status)
             VALUES (${req.body.eventId}, ${req.body.name}, 'upcoming')
@@ -16,7 +26,6 @@ router.post('/create', async (req: Request, res: Response) => {
             VALUES (${data[0].tournament_id}, ${req.body.type}, ${req.body.winsNeeded})
             RETURNING b_type, wins_needed_default`;
 
-        const respData = 
         res.status(200).json({
             eventId: data[0].event_id,
             tournamentId: data[0].tournament_id,
@@ -29,9 +38,23 @@ router.post('/create', async (req: Request, res: Response) => {
     }
 })
 
-router.post('/:id/resetStandings', async (req: Request, res: Response) => {
+router.post('/:id/resetStandings', authMiddleware, async (req: any, res: any) => {
     try {
+        const userId = req.user.id;
         const { id } = req.params;
+
+        // this will eventually change to use b_entrants
+        const checkSignedUp = await sql`SELECT entrant_id FROM t_entrants te
+            WHERE te.entrant_id = ${userId} LIMIT 1`;
+        const checkOwner = await sql`SELECT event_creator FROM events e
+            WHERE e.event_id = ${id} LIMIT 1`;
+        if (userId != checkSignedUp[0].entrant_id && userId != checkOwner[0].event_creator) {
+            res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const data2 = await sql`UPDATE tournaments
+            SET status = 'ready'
+            WHERE tournament_id = ${id}`;
 
         await sql`UPDATE t_entrants
             SET placement = null
@@ -43,9 +66,16 @@ router.post('/:id/resetStandings', async (req: Request, res: Response) => {
     }
 })
 
-router.post('/:id/saveSeeding', async (req: Request, res: Response) => {
+router.post('/:id/saveSeeding', authMiddleware, async (req: any, res: any) => {
     try {
+        const userId = req.user.id;
         const { id } = req.params;
+        
+        const checkOwner = await sql`SELECT event_creator FROM events e
+            WHERE e.event_id = ${id} LIMIT 1`;
+        if (userId != checkOwner[0]?.event_creator) {
+            res.status(401).json({ error: "Unauthorized" });
+        }
 
         let vals = [];
 
@@ -65,15 +95,23 @@ router.post('/:id/saveSeeding', async (req: Request, res: Response) => {
         WHERE tent.user_id = (data.user_id)::uuid
         AND tournament_id = ${id}`;
 
-        res.sendStatus(200);
+        res.status(200);
     } catch (error) {
         console.log(error);
     }
 })
 
-router.delete('/clear/:id', async (req: Request, res: Response) => {
+router.delete('/clear/:id', authMiddleware, async (req: any, res: any) => {
     try {
+        const userId = req.user.id;
         const { id } = req.params;
+
+        const checkOwner = await sql`SELECT event_creator FROM events e
+            WHERE e.event_id = ${id} LIMIT 1`;
+        if (userId != checkOwner[0]?.event_creator) {
+            res.status(401).json({ error: "Unauthorized" });
+        }
+
         const data = await sql`DELETE FROM matches m
             WHERE m.bracket_id =
             (SELECT b.bracket_id from brackets b
@@ -90,9 +128,17 @@ router.delete('/clear/:id', async (req: Request, res: Response) => {
     }
 })
 
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', authMiddleware, async (req: any, res: any) => {
     try {
+        const userId = req.user.id;
         const { id } = req.params;
+
+        const checkOwner = await sql`SELECT event_creator FROM events e
+            WHERE e.event_id = ${id} LIMIT 1`;
+        if (userId != checkOwner[0]?.event_creator) {
+            res.status(401).json({ error: "Unauthorized" });
+        }
+
         const data = await sql`DELETE FROM tournaments t
             WHERE t.tournament_id = ${id}`;
         res.sendStatus(200);
@@ -111,9 +157,11 @@ router.get('/:id', async (req: Request, res: Response) => {
             where tent.tournament_id = ${id}
             ORDER BY tent.seed`;
 
-        var bracketInfo: any = await sql`SELECT b.bracket_id, b.tournament_id, b.b_type, b.wins_needed_default, t.status, t.tournament_name FROM brackets b
+        var bracketInfo: any = await sql`SELECT b.bracket_id, b.tournament_id, b.b_type, b.wins_needed_default, t.status, t.tournament_name, e.event_creator FROM brackets b
             LEFT JOIN tournaments t
             ON b.tournament_id = t.tournament_id
+            LEFT JOIN events e
+            ON t.event_id = e.event_id
             WHERE b.tournament_id = ${id}
             ORDER BY b.bracket_id`;
 
@@ -235,26 +283,80 @@ router.get('/:id/entrants', async (req: Request, res: Response) => {
     }
 })
 
-router.post('/:id/signup/:userid', async (req: Request, res: Response) => {
-    const { id, userid } = req.params;
+router.post('/:id/signup/:id2', authMiddleware, async (req: any, res: any) => {
     try {
+        const { id, id2 } = req.params;
+        const userId = req.user.id;
+        
+        const checkOwner = await sql`SELECT event_creator FROM events e
+            WHERE e.event_id = ${id} LIMIT 1`;
+
+        if (userId != id2 && userId != checkOwner[0]?.event_creator) {
+            res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const checkESignup = await sql`SELECT ee.user_id FROM e_entrants ee
+            WHERE ee.event_id = ${id}
+            AND ee.user_id = ${userId}`;
+        const checkTSignup = await sql`SELECT te.user_id FROM t_entrants te
+            WHERE te.event_id = ${id}
+            AND te.user_id = ${userId}`;
+
+        if (checkESignup.length == 0 || checkTSignup.length > 0) {
+            res.status(401).json({ error: "Signup error" });
+        }
+
         const data = await sql`insert into t_entrants (tournament_id, user_id, seed)
-            values (${req.body.tournamentId}, ${req.body.userId}, ${req.body.seed})`;
+            values (${req.body.tournamentId}, ${userId}, ${req.body.seed})`;
         const retData = await sql`select p.tag, p.id from profiles p
-            where p.id = ${req.body.userId}`;
+            where p.id = ${userId}`;
         res.status(200).json(retData[0]);
     } catch (error) {
         console.log(error);
     }
 })
 
-router.delete('/:id/signup/:userid', async (req: Request, res: Response) => {
-    const { id, userid } = req.params;
+router.delete('/:id/signup/:id2', authMiddleware, async (req: any, res: any) => {
     try {
+        const { id, id2 } = req.params;
+        const userId = req.user.id;
+        
+        const checkOwner = await sql`SELECT event_creator FROM events e
+            WHERE e.event_id = ${id} LIMIT 1`;
+
+        if (userId != id2 && userId != checkOwner[0]?.event_creator) {
+            res.status(401).json({ error: "Unauthorized" });
+        }
+
         const data = await sql`delete from t_entrants
             where user_id = ${req.body.userId}
             and tournament_id = ${req.body.tournamentId}`;
         res.sendStatus(200);
+    } catch (error) {
+        console.log(error);
+    }
+})
+
+router.get('/:id/regstatus/:id2', async (req: any, res: any) => {
+    try {
+        const { id, id2 } = req.params;
+        
+        const tournamentData = await sql`SELECT * FROM t_entrants
+            WHERE user_id = ${id2}
+            AND tournament_id = ${id}`;
+
+        const eventData = await sql`SELECT * FROM e_entrants
+            WHERE user_id = ${id2}
+            AND event_id = (SELECT event_id FROM tournaments
+                WHERE tournament_id = ${id})`;
+
+        const retObj = {
+            isRegisteredEvent: (eventData.length > 0),
+            isRegisteredTournament: (tournamentData.length > 0)
+        }
+
+        res.status(200).json(retObj);
+
     } catch (error) {
         console.log(error);
     }

@@ -1,6 +1,7 @@
 import express from 'express';
 const router = express.Router();
 import { Request, Response } from 'express';
+import { authMiddleware } from 'utils/authMiddleware.js';
 
 import sql from '../db.js';
 
@@ -16,9 +17,13 @@ router.get('/:id', async (req: Request, res: Response) => {
     }
 })
 
-router.post('/edit/:id', async (req: Request, res: Response) => {
+router.post('/edit/:id', authMiddleware, async (req: any, res: any) => {
     try {
+        const userId = req.user.id;
         const { id } = req.params;
+        if (userId != id) {
+            res.status(401).json({ error: "Unauthorized" });
+        }
         const data = await sql`UPDATE profiles p
             SET tag=${req.body.tag},
                 first_name=${req.body.first_name},

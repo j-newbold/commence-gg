@@ -2,6 +2,7 @@ import express from 'express';
 import { supabase } from '../utils/supabaseClient.js';
 const router = express.Router();
 import { Request, Response } from 'express';
+import { authMiddleware } from 'utils/authMiddleware.js';
 
 import sql from '../db.js';
 
@@ -17,7 +18,7 @@ router.get('/', async (req: Request, res: Response) => {
     }
 })
 
-router.post('/create', async (req: Request, res: Response) => {
+router.post('/create', authMiddleware, async (req: Request, res: Response) => {
     try {
         const data = await sql`INSERT INTO events (event_name, event_start_date, event_desc, event_creator, signups_open)
         VALUES (${req.body.eName},
@@ -55,9 +56,23 @@ router.get('/:id/entrants', async (req: Request, res: Response) => {
     }
 })
 
-router.post('/:id/signup/:id2', async (req: Request, res: Response) => {
+router.post('/:id/signup/:id2', authMiddleware, async (req: any, res: any) => {
     try {
+        const userId = req.user.id;
         const { id, id2 } = req.params;
+        const checkEvent = await sql`SELECT event_creator, signups_open FROM events e
+            WHERE e.event_id = ${id} LIMIT 1`;
+        if (checkEvent[0]?.event_creator && (checkEvent[0]?.signups_open == false || userId != id2)) {
+            res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const checkSignup = await sql`SELECT * FROM e_entrants
+            WHERE entrant_id = ${id2}
+            AND event_id = ${id}`;
+        if (checkSignup.length > 0) {
+            res.status(401).json({ error: "User is already signed up" });
+        }
+
         const data = await sql`insert into e_entrants (event_id, user_id)
             values (${id}, ${id2})`;
         res.sendStatus(200);
@@ -66,20 +81,16 @@ router.post('/:id/signup/:id2', async (req: Request, res: Response) => {
     }
 })
 
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id/signup/:id2', authMiddleware, async (req: any, res: any) => {
     try {
-        const { id } = req.params;
-        const data = await sql`DELETE FROM events
-            WHERE event_id = ${id}`;
-        res.status(200).json(data);
-    } catch (error) {
-        console.log(error);
-    }
-})
-
-router.delete('/:id/signup/:id2', async (req: Request, res: Response) => {
-    try {
+        const userId = req.user.id;
         const { id, id2 } = req.params;
+        const checkEvent = await sql`SELECT event_creator, signups_open FROM events e
+            WHERE e.event_id = ${id} LIMIT 1`;
+        if (checkEvent[0]?.event_creator && (checkEvent[0]?.signups_open == false || userId != id2)) {
+            res.status(401).json({ error: "Unauthorized" });
+        }
+
         const data = await sql`delete from e_entrants
             where user_id = ${id2}
             and event_id = ${id}`;
@@ -89,9 +100,37 @@ router.delete('/:id/signup/:id2', async (req: Request, res: Response) => {
     }
 })
 
-router.post('/:id/changesignup/:val', async (req: Request, res: Response) => {
+router.delete('/:id', authMiddleware, async (req: any, res: any) => {
     try {
+        const userId = req.user.id;
+        const { id } = req.params;
+
+        const checkOwner = await sql`SELECT event_creator FROM events
+            WHERE event_id = ${id}`;
+        
+        if (checkOwner[0]?.event_creator != userId) {
+            res.status(401).json({ error: "Unauthorized"})
+        }
+
+        const data = await sql`DELETE FROM events
+            WHERE event_id = ${id}`;
+        res.status(200).json(data);
+    } catch (error) {
+        console.log(error);
+    }
+})
+
+router.post('/:id/changesignup/:val', authMiddleware, async (req: any, res: any) => {
+    try {
+        const userId = req.user.id;
         const { id, val } = req.params;
+
+        const checkOwner = await sql`SELECT event_creator FROM events
+            WHERE event_id = ${id}`;
+        if (userId != checkOwner[0]?.event_creator) {
+            res.status(401).json({ error: "unauthorized" });
+        }
+
         const data = await sql`update events
             set signups_open = ${Boolean(val)}
             where event_id = ${id}`;

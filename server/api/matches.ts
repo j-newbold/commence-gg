@@ -1,11 +1,29 @@
 import express from 'express';
 const router = express.Router();
 import { Request, Response } from 'express';
+import { authMiddleware } from 'utils/authMiddleware.js';
 
 import sql from '../db.js';
 
-router.post('/create', async (req: Request, res: Response) => {
+router.post('/create', authMiddleware, async (req: any, res: any) => {
     try {
+        const userId = req.user.id;
+        let initId = req.body.matches[0].bracketId;
+
+        // duplicate code
+        let sameId: boolean = req.body.matches.every((e: any) => e.bracketId == initId);
+        if (!sameId) {
+            res.status(401).json({ error: "Mismatched bracket ids" });
+        }
+        const checkOwner = await sql`SELECT event_creator ec FROM events e
+            WHERE e.event_id = (SELECT t.event_id FROM tournaments t
+            JOIN brackets b
+            ON b.tournament_id = t.tournament_id
+            WHERE b.bracket_id = ${req.body.matches[0].bracketId})`;
+        if (checkOwner[0]?.ec != userId) {
+            res.status(401).json({ error: "Unauthorized" });
+        }
+
         let vals: any = [];
         for (var ma of req.body.matches) {
             vals.push([
@@ -22,6 +40,11 @@ router.post('/create', async (req: Request, res: Response) => {
                 ma.bracketId
             ]);
         }
+        
+        const data2 = await sql`UPDATE tournaments
+            SET status = 'ready'
+            WHERE tournament_id = (SELECT tournament_id FROM brackets
+                WHERE bracket_id = ${initId})`;
 
         const data = await sql`
             INSERT INTO matches (p1_id, p2_id, winner_id, wins_p1, wins_p2, p1_type, p2_type,
@@ -42,8 +65,30 @@ router.post('/create', async (req: Request, res: Response) => {
     }
 })
 
-router.post('/update', async (req: Request, res: Response) => {
+router.post('/update', authMiddleware, async (req: any, res: any) => {
     try {
+        const userId = req.user.id;
+        let initId = req.body.matches[0].bracketId;
+
+        let sameId: boolean = req.body.matches.every((e: any) => e.bracketId == initId);
+        if (!sameId) {
+            res.status(401).json({ error: "Mismatched bracket ids" });
+        }
+
+        const checkSignup = await sql`SELECT user_id FROM t_entrants
+            WHERE entrant_id = ${userId}
+            AND event_id = ${initId}`;
+
+        const checkOwner = await sql`SELECT event_creator ec FROM events e
+            WHERE e.event_id = (SELECT t.event_id FROM tournaments t
+            JOIN brackets b
+            ON b.tournament_id = t.tournament_id
+            WHERE b.bracket_id = ${initId})`;
+
+        if (checkOwner[0]?.ec != userId && checkSignup[0]?.user_id != userId) {
+            res.status(401).json({ error: "Unauthorized" });
+        }
+
         let values = [];
         let plVals = [];
         if (req.body.matches.length < 1) return
