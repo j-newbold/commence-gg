@@ -89,6 +89,7 @@ router.post('/update', authMiddleware, async (req: any, res: any) => {
             res.status(401).json({ error: "Unauthorized" });
         }
 
+
         let values = [];
         let plVals = [];
         if (req.body.matches.length < 1) return
