@@ -47,7 +47,8 @@ export default function Profile() {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
-                    'content-type': 'application/json'
+                    'content-type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
                 },
                 body: JSON.stringify(newProfileData)
             });

@@ -62,6 +62,8 @@ export type SingleBracket = {
     type?: string;
 
     tournamentName?: string;
+
+    adminId?: string;
 }
 
 export type Entrant = {

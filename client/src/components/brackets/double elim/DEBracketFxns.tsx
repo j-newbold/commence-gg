@@ -574,7 +574,9 @@ export const deHandleStart = async (tourneyData: any, setTourneyData: any, socke
         headers: {
             'content-type': 'application/json'
         }, body: JSON.stringify({
-            matches: [...newR1Matches, ...(newWR2Matches? newWR2Matches : [])]  // this may overwrite some redundant matches
+            matches: [...newR1Matches, ...(newWR2Matches? newWR2Matches : [])],  // this may overwrite some redundant matches
+            newStatus: 'in_progress',
+            tid: tourneyData.tournamentId
         })
     });
     const [matchResp, plResp] = await response.json();

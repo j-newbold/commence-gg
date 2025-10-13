@@ -6,6 +6,7 @@ import { useState, useEffect, useContext } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../utils/supabaseClient';
 import '../../index.css';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function Login(props: any) {
 
@@ -13,7 +14,11 @@ export default function Login(props: any) {
 
     return (
         <div className='login-route'>
-            <Auth supabaseClient={supabase} appearance={{ theme: ThemeSupa }} />
+            <Auth
+                supabaseClient={supabase}
+                appearance={{ theme: ThemeSupa }}
+                providers={['google', 'facebook']}
+            />
         </div>
     );
 }

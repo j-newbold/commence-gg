@@ -90,6 +90,9 @@
 .rr-bracket-holder {
     border-collapse: separate;
     position: absolute;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
 }
 
 .rr-hor-label {
@@ -104,13 +107,19 @@
 }
 
 .rr-header-row {
-    text-align: center;
-    display: block;
-    margin-bottom: 12px;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
 }
 
 .rr-vert-label {
     line-height: 42px;
+}
+
+.rr-header-row-name {
+    height: 30px;
+    width: 90px;
+    text-align: center;
 }
 
 .rr-cell {
@@ -122,7 +131,9 @@
 }
 
 .rr-row {
-    display: block;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
     margin-top: 4px;
     height: 45px;
 }

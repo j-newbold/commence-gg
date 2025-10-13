@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
 import Navbar from 'react-bootstrap/Navbar';
@@ -13,7 +13,7 @@ import SEBracket from './components/brackets/single elim/SEBracket.tsx';
 import { createClient } from '@supabase/supabase-js'
 import { ThemeSupa } from '@supabase/auth-ui-shared'
 import { Auth } from '@supabase/auth-ui-react'
-import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from './utils/supabaseClient.tsx';
 import { useAuth } from './context/AuthContext.tsx';
 
@@ -28,6 +28,7 @@ function App() {
     const { session } = useAuth();
 
     const navigate = useNavigate();
+    const location = useLocation();
 
     const handleLogout = async () => {
         const { error } = await supabase.auth.signOut();
@@ -50,7 +51,13 @@ function App() {
                                     <NavDropdown.Item onClick={handleLogout}>Log out</NavDropdown.Item>
                                 </NavDropdown>
                             </>:
-                            <Nav.Link as={Link} className='top-nav-link right-link' to='/login'>Log in</Nav.Link>
+                            <Nav.Link
+                                as={Link}
+                                className='top-nav-link right-link'
+                                to='/login'
+                                state={{ previous: location.pathname }}>
+                                    Log in
+                            </Nav.Link>
                         }
                     </Nav>
             </Navbar>

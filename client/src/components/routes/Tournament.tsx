@@ -41,10 +41,13 @@ export default function Tournament(props: any) {
     const [bracketNum, setBracketNum] = useState<any>(null);
     const [tourneyData, setTourneyData] = useState<SingleBracket | undefined>(undefined);
     const [isSignedUp, setIsSignedUp] = useState<boolean>(false);
-    const [canSignUp, setCanSignUp] = useState<boolean>(false);
+    const [signedUpEvent, setSignedUpEvent] = useState<boolean>(false);
     const { id, tid } = useParams();
     const { session } = useAuth();
-    const [tabValue, setTabValue] = useState<any>('entrants');
+    const [tabValue, setTabValue] = useState<any>(
+        tourneyData?.status == 'upcoming'? 'entrants' :
+        (tourneyData?.status == 'ready' || tourneyData?.status == 'in_progress')? 'bracket' :
+        tourneyData?.status == 'finished'? 'standings' : 'entrants');
 
     const location = useLocation();
 
@@ -94,7 +97,6 @@ export default function Tournament(props: any) {
             })
 
             socket.on('matches cleared', () => {
-                console.log('matches cleared');
                 setTourneyData((prev: any) => ({
                     ...prev,
                     roundList: null,
@@ -109,7 +111,6 @@ export default function Tournament(props: any) {
             })
 
             socket.on('match list created', (matches) => {
-                console.log('matches created');
                 let newRoundList: any[][] = [];
                 let prevCol = -1;
                 let newFinals = null;
@@ -137,8 +138,6 @@ export default function Tournament(props: any) {
                     status: newStatus
                 }))
             })
-
-            setCanSignUp(location.state.canSignUp);
             
             return () => {
                 socket.disconnect();
@@ -150,6 +149,24 @@ export default function Tournament(props: any) {
         }
 
     }, [])
+
+    useEffect(() => {
+        if (session && !location.state) {
+            fetch(import.meta.env.VITE_API_URL+`tournaments/${tid}/regstatus/${session.user.id}`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'content-type': 'application/json'
+                }
+            }).then(async (result) => {
+                const data = await result.json();
+                setIsSignedUp((prev: any) => data.isRegisteredTournament);
+                setSignedUpEvent((prev: any) => data.isRegisteredEvent);
+            }).catch((err) =>
+                console.error(err)
+            );
+        }
+    }, [session])
 
     useEffect(() => {
         tourneyDataRef.current = tourneyData;
@@ -171,8 +188,22 @@ export default function Tournament(props: any) {
             }
         });
         const jsonData = await response.json();
+
+        if (location.state) {
+            setSignedUpEvent(() => location.state.canSignUp);
+        } else if (session) {
+            
+        } else {
+            setSignedUpEvent(() => false);
+        }
+
+        setSignedUpEvent((prev) => {
+            return jsonData.entrants.some((e: any, i: number) => {
+                return e.uuid
+            })
+        });
         
-        setBracketNum(0); // hardcoded because we currently assume 1 bracket
+        setBracketNum((prev: any) => 0); // hardcoded because we currently assume 1 bracket
 
         // currently coded as a SingleBracket but should be a FullTournament
         setTourneyData((): SingleBracket => {
@@ -192,7 +223,8 @@ export default function Tournament(props: any) {
                 bracketId: (jsonData.brackets[0]?.bracket_id || null),
                 tournamentId: (jsonData.brackets[0]?.tournament_id.toString() || null),
                 type: (jsonData.brackets[0]?.b_type || null),
-                tournamentName: (jsonData.brackets[0]?.tournament_name || null)
+                tournamentName: (jsonData.brackets[0]?.tournament_name || null),
+                adminId: (jsonData.brackets[0]?.event_creator || null)
             }
         });
 
@@ -216,7 +248,7 @@ export default function Tournament(props: any) {
     const handleSignup = async () => {
         try {
             if (session) {
-                if (!canSignUp) {
+                if (!signedUpEvent) {
                     console.log('you must register for the event first!');
                     // popup: you must register for the event first!
                 } else {
@@ -298,31 +330,38 @@ export default function Tournament(props: any) {
                 <div className="text-3xl">
                     {tourneyData?.tournamentName}
                 </div>
-                <div className="admin-controls">
-                    <div className="ac-block">Admin Controls</div>
-                    {tourneyData?.status != 'in_progress' && <div
-                        onClick={() => startHandler(tourneyData, setTourneyData, socket)}
-                        className="ac-button">
-                        <Icon.Play className="ac-icon" />Start Tournament
-                    </div>}
-                    <div
-                        onClick={() => handleReset(tourneyData, setTourneyData, socket, tid)}
-                        className="ac-button">
-                        <Icon.ArrowClockwise className="ac-icon" />Reset Matches
+                { (tourneyData?.adminId == session?.user?.id) &&
+                    <div className="admin-controls">
+                        <div className="ac-block">Admin Controls</div>
+
+                        {tourneyData?.status == 'ready' && <div
+                            onClick={() => startHandler(tourneyData, setTourneyData, socket)}
+                            className="ac-button">
+                            <Icon.Play className="ac-icon" />Start Tournament
+                        </div>}
+
+                        <div
+                            onClick={() => handleReset(tourneyData, setTourneyData, socket, tid)}
+                            className="ac-button">
+                            <Icon.ArrowClockwise className="ac-icon" />Reset Matches
+                        </div>
+
+                        {tourneyData && tourneyData.status == 'upcoming' &&
+                        <div
+                            onClick={() => initHandler(tourneyData, socket)}
+                            className="ac-button">
+                            <Icon.Play className="ac-icon" />Initialize Tournament
+                        </div>}
+
+                        {tourneyData && (tourneyData.status == 'in_progress' || 'finished' || 'ready') &&
+                        <div onClick={handleClear}
+                            className="ac-button">
+                            <Icon.Eraser className="ac-icon" />Clear Tournament
+                        </div>
+                        }
+
                     </div>
-                    {tourneyData && tourneyData.status == 'upcoming' &&
-                    <div
-                        onClick={() => initHandler(tourneyData, socket)}
-                        className="ac-button">
-                        Initialize Tournament
-                    </div>}
-                    {tourneyData && (tourneyData.status == 'in_progress' || 'finished' || 'ready') &&
-                    <div onClick={handleClear}
-                        className="ac-button">
-                        <Icon.Eraser className="ac-icon" />Clear Tournament
-                    </div>
-                    }
-                </div>
+                }
                 <div className="tourney-tabs">
                     <Tabs
                         activeKey={tabValue}
@@ -336,7 +375,7 @@ export default function Tournament(props: any) {
                             {tourneyData?.playerList && 
                             <>
                                 <EntrantList />
-                                {!canSignUp?
+                                {!signedUpEvent?
                                 <>Register for the event to sign up for this tournament!</>
                                     :
                                 (tourneyData?.status == 'upcoming' && <>{!isSignedUp? <Button onClick={handleSignup} >Sign Up</Button> : <Button onClick={handleSignup} >Remove Signup</Button>}</>)

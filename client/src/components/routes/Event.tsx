@@ -97,7 +97,8 @@ export default function Event(props: any) {
                 method: 'DELETE',
                 credentials: 'include',
                 headers: {
-                    'content-type': 'application/json'
+                    'content-type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
                 }
             });
             const retJson = await response.json();
@@ -115,7 +116,8 @@ export default function Event(props: any) {
                         method: 'DELETE',
                         credentials: 'include',
                         headers: {
-                            'content-type': 'application/json'
+                            'content-type': 'application/json',
+                            'Authorization': `Bearer ${session?.access_token}`
                         }, body: JSON.stringify({
                             id: id,
                             id2: session.user.id
@@ -127,7 +129,8 @@ export default function Event(props: any) {
                         method: 'POST',
                         credentials: 'include',
                         headers: {
-                            'content-type': 'application/json'
+                            'content-type': 'application/json',
+                            'Authorization': `Bearer ${session?.access_token}`
                         }, body: JSON.stringify({
                             id: id,
                             id2: session.user.id
@@ -185,7 +188,8 @@ export default function Event(props: any) {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
-                    'content-type': 'application/json'
+                    'content-type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
                 }, body: JSON.stringify({
                     id: event.event_id,
                     val: val
@@ -205,7 +209,8 @@ export default function Event(props: any) {
                 method: 'DELETE',
                 credentials: 'include',
                 headers: {
-                    'content-type': 'application/json'
+                    'content-type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
                 }
             });
             if (response.status == 200) {

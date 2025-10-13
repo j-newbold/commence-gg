@@ -25,17 +25,17 @@ export default function RRBracket(props: any) {
     return (
         tourneyState.tourneyData.roundList?.length > 0 && <div className="tourney-holder">
             <div className="rr-bracket-holder">
-                <div className="rr-header-row rr-row">
-                    <div className="rr-cell">{}</div>
+                <div className="rr-header-row">
+                    <div className="rr-header-row-name">{}</div>
                     {tourneyState?.tourneyData?.playerList?.map((e: any, i: number) => {
-                        return <div className="rr-hor-label rr-cell" key={i}>
+                        return <div className="rr-hor-label rr-header-row-name" key={i}>
                             {tourneyState.tourneyData.status == 'in_progress' && e.tag}
                         </div>
                     })}
-                    <div className="rr-cell">
+                    <div className="rr-header-row-name">
                         Results
                     </div>
-                    <div className="rr-cell">
+                    <div className="rr-header-row-name">
                         Place
                     </div>
                 </div>

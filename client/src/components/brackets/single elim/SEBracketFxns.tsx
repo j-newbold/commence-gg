@@ -261,7 +261,9 @@ export const seHandleStart = async (tourneyData: any, setTourneyData: any, socke
             headers: {
                 'content-type': 'application/json'
             }, body: JSON.stringify({
-                matches: newMatches
+                matches: newMatches,
+                newStatus: 'in_progress',
+                tid: tourneyData.tournamentId
             })
         });
         const [matchResp, plResp] = await response.json();
